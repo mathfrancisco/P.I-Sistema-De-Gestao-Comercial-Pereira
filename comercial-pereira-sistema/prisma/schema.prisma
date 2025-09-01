@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enumerações baseadas no Diagrama de Classes
+enum UserRole {
+  ADMIN
+  MANAGER  
+  SALESPERSON
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum CustomerType {
+  RETAIL     // Varejo
+  WHOLESALE  // Atacado
+}
+
+// Entidades principais baseadas no MER
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(SALESPERSON)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  sales     Sale[]
+
+  @@map("users")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  cnae        String?   // CNAE da categoria
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relacionamentos  
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id            Int       @id @default(autoincrement())
+  name          String
+  contactPerson String?
+  email         String?   @unique
+  phone         String?
+  address       String?
+  cnpj          String?   @unique
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relacionamentos
+  products      Product[]
+
+  @@map("suppliers")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  code        String   @unique
+  barcode     String?  @unique
+  categoryId  Int
+  supplierId  Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  category    Category    @relation(fields: [categoryId], references: [id])
+  supplier    Supplier?   @relation(fields: [supplierId], references: [id])
+  inventory   Inventory?
+  saleItems   SaleItem[]
+
+  // Índices para performance
+  @@index([categoryId])
+  @@index([code])
+  @@index([name])
+  @@map("products")
+}
+
+model Inventory {
+  id          Int      @id @default(autoincrement())
+  productId   Int      @unique
+  quantity    Int      @default(0)
+  minStock    Int      @default(10)
+  maxStock    Int?
+  location    String?  // Localização no estoque
+  lastUpdate  DateTime @default(now()) @updatedAt
+  
+  // Relacionamentos
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Índices para consultas de estoque baixo
+  @@index([quantity, minStock])
+  @@map("inventory")
+}
+
+model Customer {
+  id        Int          @id @default(autoincrement())
+  name      String
+  email     String?      @unique
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  document  String?      @unique // CPF/CNPJ
+  type      CustomerType @default(RETAIL)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  
+  // Relacionamentos
+  sales     Sale[]
+
+  @@index([document])
+  @@index([type])
+  @@map("customers")
+}
+
+model Sale {
+  id         Int        @id @default(autoincrement())
+  userId     Int
+  customerId Int
+  total      Decimal    @db.Decimal(10, 2)
+  discount   Decimal?   @db.Decimal(10, 2) @default(0)
+  tax        Decimal?   @db.Decimal(10, 2) @default(0)
+  status     SaleStatus @default(PENDING)
+  notes      String?
+  saleDate   DateTime   @default(now())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  
+  // Relacionamentos
+  user       User       @relation(fields: [userId], references: [id])
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  items      SaleItem[]
+
+  // Índices para relatórios
+  @@index([saleDate])
+  @@index([status])
+  @@index([customerId])
+  @@index([userId])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId    Int
+  productId Int
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+  discount  Decimal @db.Decimal(10, 2) @default(0)
+  
+  // Relacionamentos
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+// Tabela para auditoria de movimentações de estoque
+model InventoryMovement {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  type        String   // 'IN', 'OUT', 'ADJUSTMENT'
+  quantity    Int
+  reason      String?  // Motivo da movimentação
+  userId      Int?
+  saleId      Int?     // Se foi por venda
+  createdAt   DateTime @default(now())
+  
+  // Relacionamentos
+  product     Product  @relation(fields: [productId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
