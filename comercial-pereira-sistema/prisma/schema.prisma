@@ -44,6 +44,7 @@ model User {
   sales     Sale[]
 
   @@map("users")
+  InventoryMovement InventoryMovement[]
 }
 
 model Category {
@@ -103,6 +104,7 @@ model Product {
   @@index([code])
   @@index([name])
   @@map("products")
+  InventoryMovement InventoryMovement[]
 }
 
 model Inventory {
@@ -209,3 +211,5 @@ model InventoryMovement {
   @@index([createdAt])
   @@map("inventory_movements")
 }
+
+
