@@ -43,7 +43,7 @@
 /Videos/
 /snap/
 /venv/
-
+/node_modules/
 /hs_err_pid*.log
 
 # Ignorar tudo na pasta pai
