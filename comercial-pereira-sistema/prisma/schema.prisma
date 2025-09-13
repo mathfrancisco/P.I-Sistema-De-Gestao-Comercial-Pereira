@@ -13,7 +13,7 @@ datasource db {
 // Enumerações baseadas no Diagrama de Classes
 enum UserRole {
   ADMIN
-  MANAGER  
+  MANAGER
   SALESPERSON
 }
 
@@ -25,8 +25,8 @@ enum SaleStatus {
 }
 
 enum CustomerType {
-  RETAIL     // Varejo
-  WHOLESALE  // Atacado
+  RETAIL // Varejo
+  WHOLESALE // Atacado
 }
 
 // Entidades principais baseadas no MER
@@ -39,43 +39,43 @@ model User {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relacionamentos
-  sales     Sale[]
+  sales             Sale[]
+  InventoryMovement InventoryMovement[]
 
   @@map("users")
-  InventoryMovement InventoryMovement[]
 }
 
 model Category {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   description String?
-  cnae        String?   // CNAE da categoria
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  cnae        String? // CNAE da categoria
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   // Relacionamentos  
-  products    Product[]
+  products Product[]
 
   @@map("categories")
 }
 
 model Supplier {
-  id            Int       @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   name          String
   contactPerson String?
-  email         String?   @unique
+  email         String?  @unique
   phone         String?
   address       String?
-  cnpj          String?   @unique
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  cnpj          String?  @unique
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   // Relacionamentos
-  products      Product[]
+  products Product[]
 
   @@map("suppliers")
 }
@@ -92,32 +92,32 @@ model Product {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relacionamentos
-  category    Category    @relation(fields: [categoryId], references: [id])
-  supplier    Supplier?   @relation(fields: [supplierId], references: [id])
-  inventory   Inventory?
-  saleItems   SaleItem[]
+  category          Category            @relation(fields: [categoryId], references: [id])
+  supplier          Supplier?           @relation(fields: [supplierId], references: [id])
+  inventory         Inventory?
+  saleItems         SaleItem[]
+  InventoryMovement InventoryMovement[]
 
   // Índices para performance
   @@index([categoryId])
   @@index([code])
   @@index([name])
   @@map("products")
-  InventoryMovement InventoryMovement[]
 }
 
 model Inventory {
-  id          Int      @id @default(autoincrement())
-  productId   Int      @unique
-  quantity    Int      @default(0)
-  minStock    Int      @default(10)
-  maxStock    Int?
-  location    String?  // Localização no estoque
-  lastUpdate  DateTime @default(now()) @updatedAt
-  
+  id         Int      @id @default(autoincrement())
+  productId  Int      @unique
+  quantity   Int      @default(0)
+  minStock   Int      @default(10)
+  maxStock   Int?
+  location   String? // Localização no estoque
+  lastUpdate DateTime @default(now()) @updatedAt
+
   // Relacionamentos
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   // Índices para consultas de estoque baixo
   @@index([quantity, minStock])
@@ -138,9 +138,9 @@ model Customer {
   isActive  Boolean      @default(true)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
-  
+
   // Relacionamentos
-  sales     Sale[]
+  sales Sale[]
 
   @@index([document])
   @@index([type])
@@ -152,18 +152,18 @@ model Sale {
   userId     Int
   customerId Int
   total      Decimal    @db.Decimal(10, 2)
-  discount   Decimal?   @db.Decimal(10, 2) @default(0)
-  tax        Decimal?   @db.Decimal(10, 2) @default(0)
+  discount   Decimal?   @default(0) @db.Decimal(10, 2)
+  tax        Decimal?   @default(0) @db.Decimal(10, 2)
   status     SaleStatus @default(PENDING)
   notes      String?
   saleDate   DateTime   @default(now())
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-  
+
   // Relacionamentos
-  user       User       @relation(fields: [userId], references: [id])
-  customer   Customer   @relation(fields: [customerId], references: [id])
-  items      SaleItem[]
+  user     User       @relation(fields: [userId], references: [id])
+  customer Customer   @relation(fields: [customerId], references: [id])
+  items    SaleItem[]
 
   // Índices para relatórios
   @@index([saleDate])
@@ -180,11 +180,11 @@ model SaleItem {
   quantity  Int
   unitPrice Decimal @db.Decimal(10, 2)
   total     Decimal @db.Decimal(10, 2)
-  discount  Decimal @db.Decimal(10, 2) @default(0)
-  
+  discount  Decimal @default(0) @db.Decimal(10, 2)
+
   // Relacionamentos
-  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
 
   @@index([saleId])
   @@index([productId])
@@ -193,23 +193,21 @@ model SaleItem {
 
 // Tabela para auditoria de movimentações de estoque
 model InventoryMovement {
-  id          Int      @id @default(autoincrement())
-  productId   Int
-  type        String   // 'IN', 'OUT', 'ADJUSTMENT'
-  quantity    Int
-  reason      String?  // Motivo da movimentação
-  userId      Int?
-  saleId      Int?     // Se foi por venda
-  createdAt   DateTime @default(now())
-  
+  id        Int      @id @default(autoincrement())
+  productId Int
+  type      String // 'IN', 'OUT', 'ADJUSTMENT'
+  quantity  Int
+  reason    String? // Motivo da movimentação
+  userId    Int?
+  saleId    Int? // Se foi por venda
+  createdAt DateTime @default(now())
+
   // Relacionamentos
-  product     Product  @relation(fields: [productId], references: [id])
-  user        User?    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
 
   @@index([productId])
   @@index([type])
   @@index([createdAt])
   @@map("inventory_movements")
 }
-
-

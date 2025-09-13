@@ -1,6 +1,6 @@
 // lib/services/inventory.ts
 import { prisma } from '@/lib/db'
-import { Inventory, InventoryMovement, Product } from '@prisma/client'
+
 import {
     CreateInventoryInput,
     UpdateInventoryInput,

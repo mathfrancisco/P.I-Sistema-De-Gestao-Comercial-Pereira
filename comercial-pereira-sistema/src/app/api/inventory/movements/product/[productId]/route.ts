@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatedUser, requireRole } from '@/lib/api-auth'
-import { handleApiError } from '@/lib/api-error'
+import handleApiError from '@/lib/api-error'
 import { InventoryService } from '@/lib/services/inventory'
 import { productIdSchema } from '@/lib/validations/inventory'
 
