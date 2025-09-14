@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
 import { getAuthenticatedUser, handleApiError } from "@/lib/api-auth"
+import { saleService } from "@/lib/services/sale"
 
 interface RouteParams {
   params: {
@@ -22,70 +22,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Buscar venda
-    const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
-      include: {
-        customer: { select: { name: true } },
-        items: {
-          include: {
-            product: { select: { name: true } }
-          }
-        }
-      }
-    })
-
-    if (!sale) {
-      return NextResponse.json(
-        { error: 'Venda não encontrada' },
-        { status: 404 }
-      )
-    }
-
-    // Verificar permissões
-    if (user.role === 'SALESPERSON' && sale.userId !== parseInt(user.id)) {
-      return NextResponse.json(
-        { error: 'Acesso negado para completar esta venda' },
-        { status: 403 }
-      )
-    }
-
-    // Verificar se venda pode ser completada
-    if (sale.status !== 'CONFIRMED') {
-      return NextResponse.json(
-        { 
-          error: 'Venda não pode ser completada',
-          currentStatus: sale.status,
-          expectedStatus: 'CONFIRMED'
-        },
-        { status: 409 }
-      )
-    }
-
-    // Completar venda
-    const completedSale = await prisma.sale.update({
-      where: { id: saleId },
-      data: { 
-        status: 'COMPLETED',
-        saleDate: new Date() // Atualizar data de conclusão
-      }
-    })
+    // Usar service para completar venda
+    const result = await saleService.completeSale(saleId, user)
 
     console.log(`✅ [${user.role}] ${user.email} completou venda ID: ${saleId}`)
 
-    return NextResponse.json({
-      message: 'Venda completada com sucesso',
-      sale: {
-        id: completedSale.id,
-        status: completedSale.status,
-        total: completedSale.total,
-        saleDate: completedSale.saleDate,
-        customer: sale.customer.name,
-        itemCount: sale.items.length
-      }
-    })
+    return NextResponse.json(result)
 
-  } catch (error) {
+  } catch (error: any) {
     const { error: errorMessage, statusCode } = handleApiError(error)
     return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }

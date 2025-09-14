@@ -1,7 +1,8 @@
+// app/api/categories/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
 import { getAuthenticatedUser, handleApiError } from "@/lib/api-auth"
-import { updateCategorySchema, isValidCnae, VALID_CNAES } from "@/lib/validations/category"
+import { CategoryService, ApiError } from "@/lib/services/category"
+import { VALID_CNAES } from "@/lib/validations/category"
 
 interface RouteParams {
   params: {
@@ -11,7 +12,7 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    // Verificar autenticação
+    // Verify authentication
     const user = await getAuthenticatedUser()
     
     const categoryId = parseInt(params.id)
@@ -23,83 +24,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Buscar categoria
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId },
-      include: {
-        _count: {
-          select: { 
-            products: {
-              where: { isActive: true }
-            }
-          }
-        },
-        // Para admins e managers, incluir estatísticas detalhadas
-        ...((['ADMIN', 'MANAGER'].includes(user.role)) && {
-          products: {
-            where: { isActive: true },
-            select: {
-              id: true,
-              name: true,
-              price: true,
-              code: true,
-              createdAt: true,
-              inventory: {
-                select: {
-                  quantity: true,
-                  minStock: true
-                }
-              }
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 10 // Top 10 produtos mais recentes
-          }
-        })
-      }
-    })
-
-    if (!category) {
-      return NextResponse.json(
-        { error: 'Categoria não encontrada' },
-        { status: 404 }
-      )
-    }
-
-    // Calcular estatísticas se for admin/manager
-    let statistics = null
-    if (['ADMIN', 'MANAGER'].includes(user.role) && category.products) {
-      const products = category.products
-      statistics = {
-        totalProducts: products.length,
-        totalValue: products.reduce((sum: number, p: { price: any }) => sum + Number(p.price), 0),
-        averagePrice: products.length > 0 
-          ? products.reduce((sum: number, p: { price: any }) => sum + Number(p.price), 0) / products.length
-          : 0,
-        lowStockProducts: products.filter((p: { inventory: { quantity: number; minStock: number } }) =>
-          p.inventory && p.inventory.quantity <= p.inventory.minStock
-        ).length,
-        totalInventoryValue: products.reduce((sum: number, p: { price: any; inventory: { quantity: any } }) =>
-          sum + (Number(p.price) * (p.inventory?.quantity || 0)), 0
-        )
-      }
-    }
+    // Get category with details using service
+    const category = await CategoryService.findByIdWithDetails(categoryId, user.role)
 
     console.log(`✅ [${user.role}] ${user.email} consultou categoria: ${category.name}`)
 
-    return NextResponse.json({
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      cnae: category.cnae,
-      isActive: category.isActive,
-      createdAt: category.createdAt,
-      updatedAt: category.updatedAt,
-      productCount: category._count.products,
-      ...(statistics && { statistics }),
-      ...(category.products && { recentProducts: category.products })
-    })
+    return NextResponse.json(category)
 
   } catch (error) {
+    if (error instanceof ApiError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+
     const { error: errorMessage, statusCode } = handleApiError(error)
     return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }
@@ -107,7 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    // Verificar permissões (ADMIN e MANAGER podem editar)
+    // Verify permissions (ADMIN and MANAGER can edit)
     const user = await getAuthenticatedUser()
     if (!['ADMIN', 'MANAGER'].includes(user.role)) {
       return NextResponse.json(
@@ -125,121 +61,46 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Validar dados de entrada
+    // Get request body
     const body = await request.json()
-    const validatedData = updateCategorySchema.parse({ ...body, id: categoryId })
+    
+    // Update category using service
+    const updatedCategory = await CategoryService.update(categoryId, body)
 
-    // Verificar se categoria existe
-    const existingCategory = await prisma.category.findUnique({
-      where: { id: categoryId },
-      include: {
-        _count: {
-          select: { products: true }
+    console.log(`✅ [${user.role}] ${user.email} atualizou categoria: ${updatedCategory.name}`)
+
+    return NextResponse.json(updatedCategory)
+
+  } catch (error) {
+    if (error instanceof ApiError) {
+      // Handle specific business errors
+      if (error.statusCode === 409) {
+        if (error.message.includes('produtos ativos')) {
+          // Extract product count if available
+          const activeProducts = (error as any).activeProducts || 'alguns'
+          return NextResponse.json(
+            { 
+              error: error.message,
+              activeProducts,
+              suggestion: 'Desative ou mova os produtos antes de desativar a categoria'
+            },
+            { status: 409 }
+          )
         }
+        return NextResponse.json({ error: error.message }, { status: 409 })
       }
-    })
-
-    if (!existingCategory) {
-      return NextResponse.json(
-        { error: 'Categoria não encontrada' },
-        { status: 404 }
-      )
-    }
-
-    // Verificar se nome já existe (se está sendo alterado)
-    if (validatedData.name && validatedData.name !== existingCategory.name) {
-      const nameExists = await prisma.category.findFirst({
-        where: { 
-          name: {
-            equals: validatedData.name,
-            mode: 'insensitive'
-          },
-          id: { not: categoryId }
-        }
-      })
-
-      if (nameExists) {
-        return NextResponse.json(
-          { error: 'Categoria com este nome já existe', name: validatedData.name },
-          { status: 409 }
-        )
-      }
-    }
-
-    // Validar CNAE se está sendo alterado
-    if (validatedData.cnae && validatedData.cnae !== existingCategory.cnae) {
-      if (!isValidCnae(validatedData.cnae)) {
+      if (error.statusCode === 400 && error.message.includes('CNAE')) {
         return NextResponse.json(
           { 
-            error: 'CNAE inválido para a Comercial Pereira',
-            validCnaes: VALID_CNAES,
-            provided: validatedData.cnae
+            error: error.message,
+            validCnaes: VALID_CNAES
           },
           { status: 400 }
         )
       }
-
-      // Verificar se CNAE já está em uso
-      const cnaeExists = await prisma.category.findFirst({
-        where: { 
-          cnae: validatedData.cnae,
-          id: { not: categoryId }
-        }
-      })
-
-      if (cnaeExists) {
-        return NextResponse.json(
-          { error: 'CNAE já está sendo usado por outra categoria', cnae: validatedData.cnae },
-          { status: 409 }
-        )
-      }
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
 
-    // Verificar se tentativa de desativar categoria com produtos ativos
-    if (validatedData.isActive === false && existingCategory._count.products > 0) {
-      const activeProducts = await prisma.product.count({
-        where: { 
-          categoryId: categoryId,
-          isActive: true
-        }
-      })
-
-      if (activeProducts > 0) {
-        return NextResponse.json(
-          { 
-            error: 'Não é possível desativar categoria que possui produtos ativos',
-            activeProducts,
-            suggestion: 'Desative ou mova os produtos antes de desativar a categoria'
-          },
-          { status: 409 }
-        )
-      }
-    }
-
-    // Atualizar categoria
-    const updatedCategory = await prisma.category.update({
-      where: { id: categoryId },
-      data: {
-        ...(validatedData.name && { name: validatedData.name }),
-        ...(validatedData.description !== undefined && { description: validatedData.description }),
-        ...(validatedData.cnae !== undefined && { cnae: validatedData.cnae }),
-        ...(validatedData.isActive !== undefined && { isActive: validatedData.isActive })
-      },
-      include: {
-        _count: {
-          select: { products: true }
-        }
-      }
-    })
-
-    console.log(`✅ [${user.role}] ${user.email} atualizou categoria: ${updatedCategory.name}`)
-
-    return NextResponse.json({
-      ...updatedCategory,
-      productCount: updatedCategory._count.products
-    })
-
-  } catch (error) {
     const { error: errorMessage, statusCode } = handleApiError(error)
     return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }
@@ -247,7 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    // Verificar permissões (apenas ADMIN pode deletar)
+    // Verify permissions (only ADMIN can delete)
     const user = await getAuthenticatedUser()
     if (user.role !== 'ADMIN') {
       return NextResponse.json(
@@ -265,51 +126,28 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Verificar se categoria existe
-    const existingCategory = await prisma.category.findUnique({
-      where: { id: categoryId },
-      include: {
-        _count: {
-          select: { products: true }
-        }
-      }
-    })
+    // Delete category using service
+    const result = await CategoryService.delete(categoryId)
 
-    if (!existingCategory) {
-      return NextResponse.json(
-        { error: 'Categoria não encontrada' },
-        { status: 404 }
-      )
-    }
+    console.log(`✅ [${user.role}] ${user.email} deletou categoria: ${result.deletedCategory.name}`)
 
-    // Verificar se categoria possui produtos
-    if (existingCategory._count.products > 0) {
-      return NextResponse.json(
-        { 
-          error: 'Não é possível deletar categoria que possui produtos',
-          productCount: existingCategory._count.products,
-          suggestion: 'Mova todos os produtos para outra categoria ou desative a categoria'
-        },
-        { status: 409 }
-      )
-    }
-
-    // Deletar categoria (hard delete apenas se não tem produtos)
-    await prisma.category.delete({
-      where: { id: categoryId }
-    })
-
-    console.log(`✅ [${user.role}] ${user.email} deletou categoria: ${existingCategory.name}`)
-
-    return NextResponse.json({
-      message: 'Categoria deletada com sucesso',
-      deletedCategory: {
-        id: existingCategory.id,
-        name: existingCategory.name
-      }
-    })
+    return NextResponse.json(result)
 
   } catch (error) {
+    if (error instanceof ApiError) {
+      // Handle specific business errors
+      if (error.statusCode === 409) {
+        return NextResponse.json(
+          { 
+            error: error.message,
+            suggestion: 'Mova todos os produtos para outra categoria ou desative a categoria'
+          },
+          { status: 409 }
+        )
+      }
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+
     const { error: errorMessage, statusCode } = handleApiError(error)
     return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }

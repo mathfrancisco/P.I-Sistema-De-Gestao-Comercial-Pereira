@@ -12,6 +12,7 @@ export interface DashboardOverview {
             average: Decimal       // Ticket médio de hoje
         }
         month: {
+            
             count: number          // Vendas do mês
             total: Decimal        // Faturamento do mês
             average: Decimal      // Ticket médio do mês
