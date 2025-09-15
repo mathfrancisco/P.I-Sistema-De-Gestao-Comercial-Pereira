@@ -75,23 +75,23 @@ export interface CategoryWithDetails extends CategoryResponse {
 export interface ProductInCategory {
   id: number
   name: string
-  description?: string | null
+  description: string | null  // Remove ? and undefined
   price: number
   code: string
-  barcode?: string | null
+  barcode: string | null      // Remove ? and undefined
   isActive: boolean
   createdAt: Date
   updatedAt: Date
-  supplier?: {
+  supplier: {
     id: number
     name: string
-    contactPerson?: string | null
+    contactPerson: string | null  // Remove ? and undefined
   } | null
-  inventory?: {
+  inventory: {
     quantity: number
     minStock: number
-    maxStock?: number | null
-    location?: string | null
+    maxStock: number | null
+    location: string | null
     lastUpdate: Date
   } | null
   recentSales?: Array<{
@@ -356,18 +356,28 @@ export class CategoryService {
         const products = category.products
         statistics = {
           totalProducts: products.length,
-          totalValue: products.reduce((sum: number, p: any) => sum + Number(p.price), 0),
+          totalValue: products.reduce((sum: number, p: any) => sum + this.decimalToNumber(p.price), 0),
           averagePrice: products.length > 0 
-            ? products.reduce((sum: number, p: any) => sum + Number(p.price), 0) / products.length
+            ? products.reduce((sum: number, p: any) => sum + this.decimalToNumber(p.price), 0) / products.length
             : 0,
           lowStockProducts: products.filter((p: any) =>
             p.inventory && p.inventory.quantity <= p.inventory.minStock
           ).length,
           totalInventoryValue: products.reduce((sum: number, p: any) =>
-            sum + (Number(p.price) * (p.inventory?.quantity || 0)), 0
+            sum + (this.decimalToNumber(p.price) * (p.inventory?.quantity || 0)), 0
           )
         }
       }
+
+      // Convert products for response
+      const recentProducts = category.products?.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        price: this.decimalToNumber(product.price),
+        code: product.code,
+        createdAt: product.createdAt,
+        inventory: product.inventory
+      }))
 
       return {
         id: category.id,
@@ -379,7 +389,7 @@ export class CategoryService {
         updatedAt: category.updatedAt,
         productCount: category._count.products,
         ...(statistics && { statistics }),
-        ...(category.products && { recentProducts: category.products })
+        ...(recentProducts && { recentProducts })
       }
 
     } catch (error) {
@@ -692,20 +702,24 @@ export class CategoryService {
       const formattedProducts: ProductInCategory[] = products.map((product: any) => ({
         id: product.id,
         name: product.name,
-        description: product.description,
-        price: product.price,
+        description: product.description ?? null,  // Convert undefined to null
+        price: this.decimalToNumber(product.price),
         code: product.code,
-        barcode: product.barcode,
+        barcode: product.barcode ?? null,          // Convert undefined to null
         isActive: product.isActive,
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
-        supplier: product.supplier,
+        supplier: product.supplier ? {
+          id: product.supplier.id,
+          name: product.supplier.name,
+          contactPerson: product.supplier.contactPerson ?? null  // Convert undefined to null
+        } : null,
         inventory: product.inventory,
         // Include sales data for admins/managers
         ...((['ADMIN', 'MANAGER'].includes(userRole)) && {
           recentSales: product.saleItems?.map((item: any) => ({
             quantity: item.quantity,
-            total: item.total,
+            total: this.decimalToNumber(item.total),
             date: item.sale.createdAt,
             status: item.sale.status
           })) || []
@@ -730,9 +744,9 @@ export class CategoryService {
         statistics: {
           category: {
             totalProducts: categoryStats._count.id || 0,
-            averagePrice: categoryStats._avg.price || 0,
-            minPrice: categoryStats._min.price || 0,
-            maxPrice: categoryStats._max.price || 0
+            averagePrice: this.decimalToNumber(categoryStats._avg.price),
+            minPrice: this.decimalToNumber(categoryStats._min.price),
+            maxPrice: this.decimalToNumber(categoryStats._max.price)
           },
           inventory: {
             totalQuantity: inventoryStats._sum.quantity || 0,
@@ -885,5 +899,14 @@ export class CategoryService {
       productCount: category._count.products,
       totalRevenue: 0 // Would calculate from sales
     }))
+  }
+
+  // Add this helper function at the top of the class
+  private static decimalToNumber(value: unknown): number {
+    if (typeof value === 'number') return value
+    if (value && typeof value === 'object' && 'toNumber' in value) {
+      return (value as Prisma.Decimal).toNumber()
+    }
+    return Number(value) || 0
   }
 }

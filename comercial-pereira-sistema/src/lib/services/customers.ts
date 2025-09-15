@@ -156,6 +156,16 @@ export interface CustomerSalesResponse {
 }
 
 export class CustomerService {
+  
+  // Add this helper method
+  private static decimalToNumber(value: unknown): number {
+    if (typeof value === 'number') return value
+    if (value && typeof value === 'object' && 'toNumber' in value) {
+      return (value as Prisma.Decimal).toNumber()
+    }
+    return Number(value) || 0
+  }
+
   // =================== LIST CUSTOMERS ===================
   
   static async findMany(
@@ -171,7 +181,7 @@ export class CustomerService {
       hasNextPage: boolean
       hasPrevPage: boolean
     }
-    filters: CustomerFiltersInput
+    filters: CustomerFiltersInput  // Return complete validated filters
   }> {
     try {
       // Validate filters
@@ -295,10 +305,10 @@ export class CustomerService {
             : null,
           type: customer.type as CustomerType,
           address: customer.address,
+          neighborhood: customer.neighborhood,  
           city: customer.city,
           state: customer.state,
           zipCode: customer.zipCode,
-          neighborhood: customer.neighborhood,
           isActive: customer.isActive,
           createdAt: customer.createdAt,
           updatedAt: customer.updatedAt,
@@ -307,7 +317,7 @@ export class CustomerService {
           ...(lastSale && {
             lastPurchase: {
               date: lastSale.saleDate,
-              amount: lastSale.total
+              amount: this.decimalToNumber(lastSale.total)  // Convert Decimal
             }
           })
         }
@@ -323,16 +333,7 @@ export class CustomerService {
           hasNextPage,
           hasPrevPage
         },
-        filters: {
-          search,
-          type,
-          city,
-          state,
-          isActive,
-          hasEmail,
-          hasDocument,
-          hasPurchases
-        }
+        filters: validatedFilters  // Return complete validated filters
       }
 
     } catch (error) {
@@ -376,7 +377,7 @@ export class CustomerService {
         }
       }
 
-      // Create customer
+      // Create customer with neighborhood field
       const customer = await prisma.customer.create({
         data: {
           name: validatedData.name,
@@ -385,10 +386,10 @@ export class CustomerService {
           document: validatedData.document,
           type: validatedData.type,
           address: validatedData.address,
+          neighborhood: validatedData.neighborhood, 
           city: validatedData.city,
           state: validatedData.state,
           zipCode: validatedData.zipCode,
-          neighborhood: validatedData.neighborhood,
           isActive: validatedData.isActive
         },
         include: {
@@ -398,13 +399,25 @@ export class CustomerService {
         }
       })
 
-      // Format response
+      // Format response with proper typing
       return {
-        ...customer,
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
         document: customer.document ? 
           customer.document.length === 11 ? formatCPF(customer.document) : formatCNPJ(customer.document)
           : null,
-        salesCount: customer._c.sales
+        type: customer.type as CustomerType,
+        address: customer.address,
+        neighborhood: customer.neighborhood,
+        city: customer.city,
+        state: customer.state,
+        zipCode: customer.zipCode,
+        isActive: customer.isActive,
+        createdAt: customer.createdAt,
+        updatedAt: customer.updatedAt,
+        salesCount: customer._count.sales
       } as CustomerListItem
 
     } catch (error) {
@@ -466,9 +479,10 @@ export class CustomerService {
         throw new ApiError(CUSTOMER_ERROR_MESSAGES.NOT_FOUND, 404)
       }
 
-      // Calculate statistics
+      // Calculate statistics with Decimal conversion
       const completedSales = customer.sales
-      const totalSpent = completedSales.reduce((sum: number, sale: any) => sum + Number(sale.total), 0)
+      const totalSpent = completedSales.reduce((sum: number, sale: any) => 
+        sum + this.decimalToNumber(sale.total), 0)
       const averageOrderValue = completedSales.length > 0 ? totalSpent / completedSales.length : 0
       
       // First and last purchase
@@ -500,7 +514,7 @@ export class CustomerService {
         .sort((a, b) => b.totalSpent - a.totalSpent)
         .slice(0, 5) // Top 5 categories
 
-      // Format response
+      // Format response with proper typing including neighborhood
       return {
         id: customer.id,
         name: customer.name,
@@ -511,10 +525,10 @@ export class CustomerService {
           : null,
         type: customer.type as CustomerType,
         address: customer.address,
+        neighborhood: customer.neighborhood,
         city: customer.city,
         state: customer.state,
         zipCode: customer.zipCode,
-        neighborhood: customer.neighborhood,
         isActive: customer.isActive,
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
@@ -532,7 +546,7 @@ export class CustomerService {
         // Recent sales (last 5)
         recentSales: completedSales.slice(0, 5).map((sale: any) => ({
           id: sale.id,
-          total: sale.total,
+          total: this.decimalToNumber(sale.total),
           saleDate: sale.saleDate,
           itemCount: sale.items.length
         }))
@@ -614,14 +628,26 @@ export class CustomerService {
         }
       })
 
-      // Format response
+      // Format response with proper typing
       return {
-        ...updatedCustomer,
+        id: updatedCustomer.id,
+        name: updatedCustomer.name,
+        email: updatedCustomer.email,
+        phone: updatedCustomer.phone,
         document: updatedCustomer.document ? 
           updatedCustomer.document.length === 11 ? formatCPF(updatedCustomer.document) : formatCNPJ(updatedCustomer.document)
           : null,
+        type: updatedCustomer.type as CustomerType,
+        address: updatedCustomer.address,
+        neighborhood: updatedCustomer.neighborhood,
+        city: updatedCustomer.city,
+        state: updatedCustomer.state,
+        zipCode: updatedCustomer.zipCode,
+        isActive: updatedCustomer.isActive,
+        createdAt: updatedCustomer.createdAt,
+        updatedAt: updatedCustomer.updatedAt,
         salesCount: updatedCustomer._count.sales
-      } as CustomerListItem
+      }
 
     } catch (error) {
       if (error instanceof ApiError) throw error
@@ -704,6 +730,7 @@ export class CustomerService {
 
   // =================== GET CUSTOMER SALES ===================
 
+  // Fix the CustomerSalesFilters interface to match Prisma enums
   static async getCustomerSales(
     customerId: number,
     filters: CustomerSalesFilters
@@ -732,10 +759,13 @@ export class CustomerService {
         includeItems
       } = filters
 
-      // Build filters
+      // Build filters with correct status values
       const where: Prisma.SaleWhereInput = {
         customerId: customerId,
-        ...(status && { status }),
+        // Filter out invalid status values for Prisma
+        ...(status && ['PENDING', 'COMPLETED', 'CANCELLED', 'REFUNDED'].includes(status) && { 
+          status: status as 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
+        }),
         ...(dateFrom && { saleDate: { gte: dateFrom } }),
         ...(dateTo && { saleDate: { lte: dateTo } }),
         ...(minTotal && { total: { gte: minTotal } }),
@@ -802,9 +832,9 @@ export class CustomerService {
         },
         sales: sales.map((sale: any) => ({
           id: sale.id,
-          total: sale.total,
-          discount: sale.discount,
-          tax: sale.tax,
+          total: this.decimalToNumber(sale.total),      // Convert Decimal
+          discount: this.decimalToNumber(sale.discount), // Convert Decimal
+          tax: this.decimalToNumber(sale.tax),          // Convert Decimal
           status: sale.status,
           notes: sale.notes,
           saleDate: sale.saleDate,
@@ -815,9 +845,9 @@ export class CustomerService {
             items: sale.items?.map((item: any) => ({
               id: item.id,
               quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              total: item.total,
-              discount: item.discount,
+              unitPrice: this.decimalToNumber(item.unitPrice),  // Convert Decimal
+              total: this.decimalToNumber(item.total),          // Convert Decimal
+              discount: this.decimalToNumber(item.discount),    // Convert Decimal
               product: item.product
             }))
           })
@@ -832,10 +862,10 @@ export class CustomerService {
         },
         summary: {
           totalSales: periodStats._count.id || 0,
-          totalSpent: periodStats._sum.total || 0,
-          averageOrderValue: periodStats._avg.total || 0,
-          minOrderValue: periodStats._min.total || 0,
-          maxOrderValue: periodStats._max.total || 0
+          totalSpent: this.decimalToNumber(periodStats._sum.total),     // Convert Decimal
+          averageOrderValue: this.decimalToNumber(periodStats._avg.total), // Convert Decimal
+          minOrderValue: this.decimalToNumber(periodStats._min.total),     // Convert Decimal
+          maxOrderValue: this.decimalToNumber(periodStats._max.total)      // Convert Decimal
         },
         filters: {
           status,

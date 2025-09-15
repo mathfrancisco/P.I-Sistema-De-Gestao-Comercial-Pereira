@@ -153,8 +153,8 @@ export interface UserProfile {
 }
 
 // Constantes
-export const USER_ROLES = Object.values(UserRole) as const
-export type UserRoleType = typeof USER_ROLES[number]
+export const USER_ROLES = Object.values(UserRole) as readonly UserRole[]
+export type UserRoleType = typeof UserRole[keyof typeof UserRole]
 
 export const USER_PERMISSIONS = {
   [UserRole.ADMIN]: ['*'], // Todas as permissões

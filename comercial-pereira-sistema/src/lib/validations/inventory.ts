@@ -73,7 +73,7 @@ export const updateInventorySchema = z.object({
     .nullable()
 }).refine((data) => {
   // Se ambos estão definidos, maxStock deve ser maior que minStock
-  if (data.maxStock !== undefined && data.minStock !== undefined) {
+  if (data.maxStock != null && data.minStock != null && data.maxStock <= data.minStock) {
     return data.maxStock > data.minStock
   }
   return true
@@ -94,8 +94,8 @@ export const stockAdjustmentSchema = z.object({
     .min(INVENTORY_CONSTRAINTS.REASON_MIN_LENGTH, "Motivo do ajuste deve ter pelo menos 3 caracteres")
     .max(INVENTORY_CONSTRAINTS.REASON_MAX_LENGTH, "Motivo do ajuste deve ter no máximo 500 caracteres"),
 
-  type: z.enum([MovementType.ADJUSTMENT], {
-    errorMap: () => ({ message: "Tipo deve ser ADJUSTMENT para ajustes" })
+  type: z.literal(MovementType.ADJUSTMENT, {
+    message: "Tipo deve ser ADJUSTMENT para ajustes"
   }).default(MovementType.ADJUSTMENT)
 }) satisfies z.ZodType<StockAdjustmentRequest>
 
@@ -478,12 +478,13 @@ export const validateInventoryBusinessRules = (data: CreateInventoryRequest | Up
   const errors: string[] = []
   
   // Estoque máximo deve ser maior que mínimo
-  if (data.maxStock !== undefined && data.minStock !== undefined && data.maxStock <= data.minStock) {
+  if (typeof data.maxStock === 'number' && typeof data.minStock === 'number' && data.maxStock <= data.minStock) {
     errors.push("Estoque máximo deve ser maior que o estoque mínimo")
   }
   
   // Localização não pode ser apenas números
-  if (data.location && /^\d+$/.test(data.location.trim())) {
+  const location = data.location?.trim()
+  if (location && /^\d+$/.test(location)) {
     errors.push("Localização não pode ser apenas números")
   }
   

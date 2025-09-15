@@ -125,19 +125,20 @@ model Inventory {
 }
 
 model Customer {
-  id        Int          @id @default(autoincrement())
-  name      String
-  email     String?      @unique
-  phone     String?
-  address   String?
-  city      String?
-  state     String?
-  zipCode   String?
-  document  String?      @unique // CPF/CNPJ
-  type      CustomerType @default(RETAIL)
-  isActive  Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id           Int          @id @default(autoincrement())
+  name         String
+  email        String?      @unique
+  phone        String?
+  address      String?
+  neighborhood String?      
+  city         String?
+  state        String?
+  zipCode      String?
+  document     String?      @unique // CPF/CNPJ
+  type         CustomerType @default(RETAIL)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   // Relacionamentos
   sales Sale[]

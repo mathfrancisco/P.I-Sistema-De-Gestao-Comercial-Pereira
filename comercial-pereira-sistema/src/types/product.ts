@@ -1,5 +1,7 @@
 // types/product.ts
 
+import { Product } from "@prisma/client"
+
 
 // Tipos básicos baseados no Prisma
 export type ProductModel = Product
