@@ -1,5 +1,6 @@
 // lib/services/dashboard.ts
 import { prisma } from '@/lib/db'
+import { Decimal } from '@prisma/client/runtime/library'
 import {
     DashboardOverview,
     ProductSaleMetric,
@@ -12,6 +13,22 @@ import {
     PeriodDates
 } from '@/types/dashboard'
 import { getPeriodDates, calculateGrowth } from '@/lib/validations/dashboard'
+
+// =================== HELPER FUNCTIONS ===================
+
+// Helper para converter valores para Decimal
+function toDecimal(value: number | Decimal | null): Decimal {
+    if (value === null || value === undefined) return new Decimal(0)
+    if (value instanceof Decimal) return value
+    return new Decimal(value)
+}
+
+// Helper para converter Decimal para number quando necessário
+function toNumber(value: number | Decimal | null): number {
+    if (value === null || value === undefined) return 0
+    if (value instanceof Decimal) return value.toNumber()
+    return value
+}
 
 // =================== DASHBOARD OVERVIEW ===================
 
@@ -133,11 +150,11 @@ async function getSalesMetrics(
 
     return {
         count: currentStats._count.id,
-        total: currentStats._sum.total || 0,
-        average: currentStats._avg.total || 0,
+        total: toDecimal(currentStats._sum.total), // Garantir que é Decimal
+        average: toDecimal(currentStats._avg.total), // Garantir que é Decimal
         growth: calculateGrowth(
-            Number(currentStats._sum.total || 0),
-            Number(previousStats._sum.total || 0)
+            toNumber(currentStats._sum.total),
+            toNumber(previousStats._sum.total)
         )
     }
 }
@@ -224,7 +241,7 @@ export async function getTopSellingProducts(
             productCode: product?.code || '',
             categoryName: product?.category.name || '',
             totalQuantitySold: item._sum.quantity || 0,
-            totalRevenue: item._sum.total || 0,
+            totalRevenue: toDecimal(item._sum.total), // Garantir que é Decimal
             salesCount: item._count.saleId,
             averageQuantityPerSale: Number(item._avg.quantity || 0),
             lastSaleDate: lastSale?.lastSaleDate || null,
@@ -320,8 +337,8 @@ export async function getUserPerformanceMetrics(
             userName: user?.name || 'Usuário não encontrado',
             userRole: user?.role || 'N/A',
             salesCount: performance._count.id,
-            totalRevenue: performance._sum.total || 0,
-            averageOrderValue: performance._avg.total || 0,
+            totalRevenue: toDecimal(performance._sum.total), // Garantir que é Decimal
+            averageOrderValue: toDecimal(performance._avg.total), // Garantir que é Decimal
             topCategory: topCategory?.categoryName || 'N/A',
             efficiency: Number(efficiency.toFixed(2)),
             growth: 0 // TODO: Implementar cálculo de crescimento
@@ -406,7 +423,7 @@ export async function getCategorySalesMetrics(
             }
 
             existing.salesCount += sale._count.saleId
-            existing.totalRevenue += Number(sale._sum.total || 0)
+            existing.totalRevenue += toNumber(sale._sum.total) // Somar como numbers
             existing.totalQuantitySold += sale._sum.quantity || 0
 
             categoryMetrics.set(categoryId, existing)
@@ -414,22 +431,26 @@ export async function getCategorySalesMetrics(
     })
 
     // Calcular market share e ordenar
-    const totalRevenueAmount = Number(totalRevenue._sum.total || 0)
+    const totalRevenueAmount = toNumber(totalRevenue._sum.total)
 
     return Array.from(categoryMetrics.values())
         .map(category => ({
-            ...category,
-            totalRevenue: category.totalRevenue as any, // Converter para Decimal
-            averageOrderValue: category.salesCount > 0
-                ? category.totalRevenue / category.salesCount
-                : 0,
+            categoryId: category.categoryId,
+            categoryName: category.categoryName,
+            cnae: category.cnae,
+            salesCount: category.salesCount,
+            totalRevenue: toDecimal(category.totalRevenue), // Converter para Decimal
+            totalQuantitySold: category.totalQuantitySold,
+            averageOrderValue: toDecimal(category.salesCount > 0 
+                ? category.totalRevenue / category.salesCount 
+                : 0), // Garantir que é Decimal
             marketShare: totalRevenueAmount > 0
                 ? (category.totalRevenue / totalRevenueAmount) * 100
                 : 0,
             growth: 0, // TODO: Implementar cálculo de crescimento
             topProducts: [] // TODO: Buscar top produtos da categoria
         }))
-        .sort((a, b) => b.totalRevenue - a.totalRevenue)
+        .sort((a, b) => toNumber(b.totalRevenue) - toNumber(a.totalRevenue))
 }
 
 // =================== ANÁLISE DE ESTOQUE ===================
@@ -500,7 +521,7 @@ export async function getLowStockAnalysis(
             categoryName: inventory.product.category.name,
             currentStock: inventory.quantity,
             minStock: inventory.minStock,
-            maxStock: inventory.maxStock,
+            maxStock: inventory.maxStock || 0, // Garantir que não é null
             salesLast30Days,
             averageDailySales: Number(averageDailySales.toFixed(2)),
             daysUntilOutOfStock,
@@ -594,7 +615,7 @@ async function getTopCustomers(periodDates: PeriodDates, limit = 5): Promise<Cus
         })
     )
 
-    return topCustomers.map((tc: { customerId: any; _sum: { total: any }; _count: { id: any }; _avg: { total: any } }) => {
+    return topCustomers.map(tc => {
         const customer = customers.find(c => c.id === tc.customerId)
         const lastPurchase = lastPurchases.find(lp => lp.customerId === tc.customerId)
 
@@ -602,9 +623,9 @@ async function getTopCustomers(periodDates: PeriodDates, limit = 5): Promise<Cus
             customerId: tc.customerId,
             customerName: customer?.name || 'Cliente não encontrado',
             customerType: customer?.type as 'RETAIL' | 'WHOLESALE' || 'RETAIL',
-            totalPurchases: tc._sum.total || 0,
+            totalPurchases: toDecimal(tc._sum.total), // Garantir que é Decimal
             purchaseCount: tc._count.id,
-            averageOrderValue: tc._avg.total || 0,
+            averageOrderValue: toDecimal(tc._avg.total), // Garantir que é Decimal
             lastPurchaseDate: lastPurchase?.lastPurchaseDate || null,
             frequency: tc._count.id // Simplificado: número de compras no período
         }

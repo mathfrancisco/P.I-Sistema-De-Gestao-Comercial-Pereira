@@ -265,6 +265,8 @@ export interface InventoryReportFilters extends ReportFilters {
     includeMovements?: boolean
 }
 
+// In types/report.ts - Update the InventoryReportData interface
+
 export interface InventoryReportData {
     summary: {
         totalItems: number
@@ -281,11 +283,11 @@ export interface InventoryReportData {
         category: string
         quantity: number
         minStock: number
-        maxStock?: number
+        maxStock: number | null  // Changed from number | undefined
         value: number
         status: 'normal' | 'low' | 'critical' | 'out' | 'overstock'
-        lastMovement?: Date
-        location?: string
+        lastMovement: Date        // Changed from Date | undefined (always present from Prisma)
+        location: string | null   // Changed from string | undefined
     }>
     movements?: Array<{
         date: Date
@@ -293,7 +295,7 @@ export interface InventoryReportData {
         productName: string
         type: 'IN' | 'OUT' | 'ADJUSTMENT'
         quantity: number
-        reason?: string
+        reason: string | null  
         user: string
     }>
     reorderList?: Array<{

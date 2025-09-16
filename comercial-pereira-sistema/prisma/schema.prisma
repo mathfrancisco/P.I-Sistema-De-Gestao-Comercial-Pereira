@@ -18,7 +18,9 @@ enum UserRole {
 }
 
 enum SaleStatus {
+  DRAFT
   PENDING
+  CONFIRMED
   COMPLETED
   CANCELLED
   REFUNDED

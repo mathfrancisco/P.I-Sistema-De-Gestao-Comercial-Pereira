@@ -44,7 +44,7 @@ export class ProductService {
                 location
             } = data
 
-            return await prisma.$transaction(async (tx: { category: { findUnique: (arg0: { where: { id: CreateProductInput } }) => any }; supplier: { findUnique: (arg0: { where: { id: any } }) => any }; product: { create: (arg0: { data: { name: any; description: any; price: any; code: any; barcode: any; categoryId: CreateProductInput; supplierId: any; isActive: any }; include: { category: { select: { id: boolean; name: boolean; description: boolean } }; supplier: { select: { id: boolean; name: boolean; contactPerson: boolean } } } }) => any }; inventory: { create: (arg0: { data: { productId: any; quantity: any; minStock: any; maxStock: any; location: any } }) => any } }) => {
+            return await prisma.$transaction(async (tx) => {
                 // 1. Validar categoria existe e está ativa
                 const category = await tx.category.findUnique({
                     where: { id: categoryId }
@@ -125,16 +125,20 @@ export class ProductService {
                 return this.formatProductResponse(product, inventory)
             })
 
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof ApiError) throw error
 
             // Tratar erros específicos do Prisma
-            if (error.code === 'P2002') {
-                const field = error.meta?.target?.[0]
-                if (field === 'code') {
-                    throw new ApiError(PRODUCT_ERROR_MESSAGES.CODE_IN_USE, 409)
-                } else if (field === 'barcode') {
-                    throw new ApiError(PRODUCT_ERROR_MESSAGES.BARCODE_IN_USE, 409)
+            if (error && typeof error === 'object' && 'code' in error) {
+                const prismaError = error as { code: string; meta?: { target?: string[] } }
+                
+                if (prismaError.code === 'P2002') {
+                    const field = prismaError.meta?.target?.[0]
+                    if (field === 'code') {
+                        throw new ApiError(PRODUCT_ERROR_MESSAGES.CODE_IN_USE, 409)
+                    } else if (field === 'barcode') {
+                        throw new ApiError(PRODUCT_ERROR_MESSAGES.BARCODE_IN_USE, 409)
+                    }
                 }
             }
 
@@ -165,7 +169,7 @@ export class ProductService {
                 sortOrder
             } = filters
 
-            // Construir filtros WHERE
+            // Construir filtros WHERE (REMOVENDO lowStock - será aplicado depois)
             const where: Prisma.ProductWhereInput = {
                 ...(search && {
                     OR: [
@@ -184,41 +188,44 @@ export class ProductService {
                 ...(createdAfter && { createdAt: { gte: createdAfter } }),
                 ...(createdBefore && { createdAt: { lte: createdBefore } }),
                 ...(hasStock && { inventory: { quantity: { gt: 0 } } }),
-                ...(noStock && { inventory: { quantity: 0 } }),
-                ...(lowStock && { 
-                    inventory: { 
-                        quantity: { lte: prisma.inventory.fields.minStock }
-                    }
-                })
+                ...(noStock && { inventory: { quantity: 0 } })
             }
 
             // Definir ordenação
             const orderBy = this.buildProductOrderBy(sortBy, sortOrder)
 
-            // Buscar dados e contadores em paralelo
-            const [products, total, summary] = await Promise.all([
-                prisma.product.findMany({
-                    where,
-                    skip: (page - 1) * limit,
-                    take: limit,
-                    orderBy,
-                    include: {
-                        category: { select: { id: true, name: true, description: true } },
-                        supplier: { select: { id: true, name: true, contactPerson: true } },
-                        inventory: { select: { quantity: true, minStock: true, maxStock: true, location: true } }
-                    }
-                }),
-                prisma.product.count({ where }),
-                this.getProductsSummary()
-            ])
+            // Buscar produtos
+            let allProducts = await prisma.product.findMany({
+                where,
+                include: {
+                    category: { select: { id: true, name: true, description: true } },
+                    supplier: { select: { id: true, name: true, contactPerson: true } },
+                    inventory: { select: { quantity: true, minStock: true, maxStock: true, location: true } }
+                },
+                orderBy
+            })
+
+            // Aplicar filtro lowStock EM JAVASCRIPT (pós-query)
+            if (lowStock) {
+                allProducts = allProducts.filter(product => 
+                    product.inventory && product.inventory.quantity <= product.inventory.minStock
+                )
+            }
+
+            // Aplicar paginação APÓS o filtro
+            const total = allProducts.length
+            const products = allProducts.slice((page - 1) * limit, page * limit)
 
             // Calcular informações de paginação
             const pages = Math.ceil(total / limit)
             const hasNext = page < pages
             const hasPrev = page > 1
 
+            // Obter summary
+            const summary = await this.getProductsSummary()
+
             return {
-                data: products.map((product: { inventory: any }) => this.formatProductResponse(product, product.inventory)),
+                data: products.map(product => this.formatProductResponse(product, product.inventory)),
                 pagination: {
                     page,
                     limit,
@@ -305,7 +312,7 @@ export class ProductService {
 
     static async update(id: number, data: UpdateProductInput, currentUserId: number): Promise<ProductResponse> {
         try {
-            return await prisma.$transaction(async (tx: { product: { findUnique: (arg0: { where: { id: number }; include: { category: { select: { id: boolean; name: boolean; description: boolean } }; supplier: { select: { id: boolean; name: boolean; contactPerson: boolean } }; inventory: { select: { quantity: boolean; minStock: boolean; maxStock: boolean; location: boolean } } } }) => any; update: (arg0: { where: { id: number }; data: Prisma.ProductUpdateInput; include: { category: { select: { id: boolean; name: boolean; description: boolean } }; supplier: { select: { id: boolean; name: boolean; contactPerson: boolean } }; inventory: { select: { quantity: boolean; minStock: boolean; maxStock: boolean; location: boolean } } } }) => any }; category: { findUnique: (arg0: { where: { id: any } }) => any }; supplier: { findUnique: (arg0: { where: { id: any } }) => any } }) => {
+            return await prisma.$transaction(async (tx) => {
                 // 1. Verificar se produto existe
                 const existingProduct = await tx.product.findUnique({
                     where: { id },
@@ -410,15 +417,19 @@ export class ProductService {
                 return this.formatProductResponse(updatedProduct, updatedProduct.inventory)
             })
 
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof ApiError) throw error
 
-            if (error.code === 'P2002') {
-                const field = error.meta?.target?.[0]
-                if (field === 'code') {
-                    throw new ApiError(PRODUCT_ERROR_MESSAGES.CODE_IN_USE, 409)
-                } else if (field === 'barcode') {
-                    throw new ApiError(PRODUCT_ERROR_MESSAGES.BARCODE_IN_USE, 409)
+            if (error && typeof error === 'object' && 'code' in error) {
+                const prismaError = error as { code: string; meta?: { target?: string[] } }
+                
+                if (prismaError.code === 'P2002') {
+                    const field = prismaError.meta?.target?.[0]
+                    if (field === 'code') {
+                        throw new ApiError(PRODUCT_ERROR_MESSAGES.CODE_IN_USE, 409)
+                    } else if (field === 'barcode') {
+                        throw new ApiError(PRODUCT_ERROR_MESSAGES.BARCODE_IN_USE, 409)
+                    }
                 }
             }
 
@@ -430,7 +441,7 @@ export class ProductService {
 
     static async delete(id: number, currentUserId: number, reason?: string): Promise<void> {
         try {
-            return await prisma.$transaction(async (tx: { product: { findUnique: (arg0: { where: { id: number }; include: { _count: { select: { saleItems: boolean; InventoryMovement: boolean } } } }) => any; update: (arg0: { where: { id: number }; data: { isActive: boolean } }) => any } }) => {
+            return await prisma.$transaction(async (tx) => {
                 // 1. Verificar se produto existe
                 const product = await tx.product.findUnique({
                     where: { id },
@@ -504,9 +515,11 @@ export class ProductService {
                 }
             })
 
-            return products.map((product: { inventory: any }) => 
-                this.formatProductResponse(product, withStock ? product.inventory : undefined)
-            )
+            return products.map(product => {
+                // Verificar se inventory existe quando withStock = true
+                const inventory = withStock && 'inventory' in product ? product.inventory : undefined
+                return this.formatProductResponse(product, inventory)
+            })
 
         } catch (error) {
             throw new ApiError('Erro na busca de produtos', 500)
@@ -525,7 +538,7 @@ export class ProductService {
                 }
             })
 
-            return products.map((product: { inventory: any }) => this.formatProductResponse(product, product.inventory))
+            return products.map(product => this.formatProductResponse(product, product.inventory))
 
         } catch (error) {
             throw new ApiError('Erro ao buscar produtos ativos', 500)
@@ -547,7 +560,7 @@ export class ProductService {
                 }
             })
 
-            return products.map((product: { inventory: any }) => this.formatProductResponse(product, product.inventory))
+            return products.map(product => this.formatProductResponse(product, product.inventory))
 
         } catch (error) {
             throw new ApiError('Erro ao buscar produtos por categoria', 500)
@@ -569,7 +582,7 @@ export class ProductService {
                 }
             })
 
-            return products.map((product: { inventory: any }) => this.formatProductResponse(product, product.inventory))
+            return products.map(product => this.formatProductResponse(product, product.inventory))
 
         } catch (error) {
             throw new ApiError('Erro ao buscar produtos por fornecedor', 500)
@@ -584,7 +597,6 @@ export class ProductService {
                 totalProducts,
                 activeProducts,
                 productsWithSales,
-                lowStockProducts,
                 productsByCategory,
                 productsBySupplier,
                 recentProducts
@@ -600,24 +612,12 @@ export class ProductService {
                         saleItems: {
                             where: { sale: { status: 'COMPLETED' } },
                             select: { quantity: true, total: true }
-                        },
-                        inventory: { select: { quantity: true } }
+                        }
                     },
                     orderBy: {
                         saleItems: { _count: 'desc' }
                     },
                     take: 10
-                }),
-                prisma.product.findMany({
-                    where: {
-                        isActive: true,
-                        inventory: { quantity: { lte: prisma.inventory.fields.minStock } }
-                    },
-                    include: {
-                        inventory: { select: { quantity: true, minStock: true } }
-                    },
-                    take: 10,
-                    orderBy: { inventory: { quantity: 'asc' } }
                 }),
                 prisma.product.groupBy({
                     by: ['categoryId'],
@@ -644,27 +644,39 @@ export class ProductService {
                 })
             ])
 
+            // BUSCA SEPARADA para produtos com estoque baixo usando SQL bruto
+            const lowStockProducts = await prisma.$queryRaw<Array<{
+                id: number
+                name: string
+                code: string
+                quantity: number
+                minStock: number
+            }>>`
+                SELECT p.id, p.name, p.code, i.quantity, i."minStock"
+                FROM products p
+                INNER JOIN inventory i ON p.id = i."productId"
+                WHERE p."isActive" = true AND i.quantity <= i."minStock"
+                ORDER BY i.quantity ASC
+                LIMIT 10
+            `
+
             // Calcular estatísticas
             const inactiveProducts = totalProducts - activeProducts
 
             const totalInventoryValue = await prisma.product.aggregate({
                 where: { isActive: true },
-                _sum: {
-                    price: true
-                }
+                _sum: { price: true }
             })
 
             const averagePrice = await prisma.product.aggregate({
                 where: { isActive: true },
-                _avg: {
-                    price: true
-                }
+                _avg: { price: true }
             })
 
             // Top produtos mais vendidos
-            const topSellingProducts = productsWithSales.map((product: { saleItems: any[]; id: any; name: any; code: any }) => {
-                const totalSales = product.saleItems.reduce((sum: any, item: { quantity: any }) => sum + item.quantity, 0)
-                const revenue = product.saleItems.reduce((sum: number, item: { total: any }) => sum + Number(item.total), 0)
+            const topSellingProducts = productsWithSales.map(product => {
+                const totalSales = product.saleItems.reduce((sum, item) => sum + item.quantity, 0)
+                const revenue = product.saleItems.reduce((sum, item) => sum + Number(item.total), 0)
                 
                 return {
                     id: product.id,
@@ -675,13 +687,13 @@ export class ProductService {
                 }
             }).slice(0, 10)
 
-            // Produtos com estoque baixo
-            const lowStockList = lowStockProducts.map((product: { id: any; name: any; code: any; inventory: { quantity: any; minStock: any } }) => ({
+            // Produtos com estoque baixo (já formatado da query)
+            const lowStockList = lowStockProducts.map(product => ({
                 id: product.id,
                 name: product.name,
                 code: product.code,
-                currentStock: product.inventory?.quantity || 0,
-                minStock: product.inventory?.minStock || 0
+                currentStock: product.quantity,
+                minStock: product.minStock
             }))
 
             // Buscar nomes das categorias e fornecedores
@@ -690,24 +702,28 @@ export class ProductService {
                 prisma.supplier.findMany({ where: { isActive: true } })
             ])
 
-            const categoryMap = categories.reduce((acc: { [x: string]: any }, cat: { id: string | number; name: any }) => {
+            const categoryMap = categories.reduce((acc, cat) => {
                 acc[cat.id] = cat.name
                 return acc
             }, {} as Record<number, string>)
 
-            const supplierMap = suppliers.reduce((acc: { [x: string]: any }, sup: { id: string | number; name: any }) => {
+            const supplierMap = suppliers.reduce((acc, sup) => {
                 acc[sup.id] = sup.name
                 return acc
             }, {} as Record<number, string>)
 
-            const productsByCategoryNamed = productsByCategory.reduce((acc: { [x: string]: any }, item: { categoryId: string | number; _count: { categoryId: any } }) => {
+            const productsByCategoryNamed = productsByCategory.reduce((acc, item) => {
                 const categoryName = categoryMap[item.categoryId] || 'Categoria Desconhecida'
                 acc[categoryName] = item._count.categoryId
                 return acc
             }, {} as Record<string, number>)
 
-            const productsBySupplierNamed = productsBySupplier.reduce((acc: { [x: string]: any }, item: { supplierId: string | number; _count: { supplierId: any } }) => {
-                const supplierName = item.supplierId ? supplierMap[item.supplierId] || 'Fornecedor Desconhecido' : 'Sem Fornecedor'
+            const productsBySupplierNamed = productsBySupplier.reduce((acc, item) => {
+                const supplierId = item.supplierId
+                const supplierName = supplierId ? 
+                    (supplierMap[supplierId] || 'Fornecedor Desconhecido') : 
+                    'Sem Fornecedor'
+                    
                 acc[supplierName] = item._count.supplierId
                 return acc
             }, {} as Record<string, number>)
@@ -722,8 +738,8 @@ export class ProductService {
                 lowStockProducts: lowStockList,
                 productsByCategory: productsByCategoryNamed,
                 productsBySupplier: productsBySupplierNamed,
-                recentProducts: recentProducts.map((product: { inventory: any }) => 
-                    this.formatProductResponse(product, product.inventory)
+                recentProducts: recentProducts.map(product => 
+                    this.formatProductResponse(product, product.inventory || undefined)
                 )
             }
 
@@ -746,8 +762,9 @@ export class ProductService {
                         minStock: 10
                     }, currentUserId)
                     results.success++
-                } catch (error) {
-                    results.errors.push(`${productData.code}: ${error.message}`)
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+                    results.errors.push(`${productData.code}: ${errorMessage}`)
                 }
             }
 
@@ -769,7 +786,16 @@ export class ProductService {
                 select: { id: true }
             })
 
-            const available = !existingProduct || (data.excludeId && existingProduct.id === data.excludeId)
+            // Garantir que sempre retorna boolean
+            let available: boolean
+            
+            if (!existingProduct) {
+                available = true
+            } else if (data.excludeId && existingProduct.id === data.excludeId) {
+                available = true
+            } else {
+                available = false
+            }
             
             return { available }
 
@@ -827,57 +853,62 @@ export class ProductService {
         }
     }
 
-    private static buildProductOrderBy(sortBy: string, sortOrder: string) {
+    private static buildProductOrderBy(sortBy: string, sortOrder: string): Prisma.ProductOrderByWithRelationInput {
+        const order = sortOrder as 'asc' | 'desc'
+        
         switch (sortBy) {
             case 'name':
-                return { name: sortOrder }
+                return { name: order }
             case 'code':
-                return { code: sortOrder }
+                return { code: order }
             case 'price':
-                return { price: sortOrder }
+                return { price: order }
             case 'categoryName':
-                return { category: { name: sortOrder } }
+                return { category: { name: order } }
             case 'supplierName':
-                return { supplier: { name: sortOrder } }
+                return { supplier: { name: order } }
             case 'createdAt':
-                return { createdAt: sortOrder }
+                return { createdAt: order }
             case 'updatedAt':
-                return { updatedAt: sortOrder }
+                return { updatedAt: order }
             case 'stock':
-                return { inventory: { quantity: sortOrder } }
+                return { inventory: { quantity: order } }
             default:
                 return { name: 'asc' }
         }
     }
 
     private static async getProductsSummary() {
-        const [total, active, lowStock, outOfStock, totalValue] = await Promise.all([
+        const [total, active, totalValue] = await Promise.all([
             prisma.product.count(),
             prisma.product.count({ where: { isActive: true } }),
-            prisma.product.count({
-                where: {
-                    isActive: true,
-                    inventory: { quantity: { lte: prisma.inventory.fields.minStock } }
-                }
-            }),
-            prisma.product.count({
-                where: {
-                    isActive: true,
-                    inventory: { quantity: 0 }
-                }
-            }),
             prisma.product.aggregate({
                 where: { isActive: true },
                 _sum: { price: true }
             })
         ])
 
+        // Consultas SQL brutas para estoque
+        const lowStockCount = await prisma.$queryRaw<Array<{ count: bigint }>>`
+            SELECT COUNT(*) as count
+            FROM products p
+            INNER JOIN inventory i ON p.id = i."productId"
+            WHERE p."isActive" = true AND i.quantity <= i."minStock"
+        `
+
+        const outOfStockCount = await prisma.$queryRaw<Array<{ count: bigint }>>`
+            SELECT COUNT(*) as count
+            FROM products p
+            INNER JOIN inventory i ON p.id = i."productId"
+            WHERE p."isActive" = true AND i.quantity = 0
+        `
+
         return {
             totalProducts: total,
             activeProducts: active,
             inactiveProducts: total - active,
-            lowStockProducts: lowStock,
-            outOfStockProducts: outOfStock,
+            lowStockProducts: Number(lowStockCount[0]?.count) || 0,
+            outOfStockProducts: Number(outOfStockCount[0]?.count) || 0,
             totalValue: Number(totalValue._sum.price) || 0
         }
     }

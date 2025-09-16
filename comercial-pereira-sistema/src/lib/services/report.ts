@@ -696,13 +696,13 @@ export class ReportService {
         })
     }
 
-    private static getStockStatus(inventory: any): string {
-        if (!inventory || inventory.quantity === 0) return 'out'
-        if (inventory.quantity <= inventory.minStock / 2) return 'critical'
-        if (inventory.quantity <= inventory.minStock) return 'low'
-        if (inventory.maxStock && inventory.quantity > inventory.maxStock) return 'overstock'
-        return 'normal'
-    }
+    private static getStockStatus(inventory: any): 'normal' | 'low' | 'critical' | 'out' | 'overstock' {
+    if (!inventory || inventory.quantity === 0) return 'out'
+    if (inventory.quantity <= inventory.minStock / 2) return 'critical'
+    if (inventory.quantity <= inventory.minStock) return 'low'
+    if (inventory.maxStock && inventory.quantity > inventory.maxStock) return 'overstock'
+    return 'normal'
+}
 
     private static async generateABCAnalysis() {
         // Simplified ABC analysis
