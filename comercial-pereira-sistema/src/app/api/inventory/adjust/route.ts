@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         const data = stockAdjustmentSchema.parse(body)
 
         // 4. Processar ajuste
-        const result = await InventoryService.adjustStock(data, user.id)
+        const result = await InventoryService.adjustStock(data, Number(user.id))
 
         // 5. Resposta
         return NextResponse.json({

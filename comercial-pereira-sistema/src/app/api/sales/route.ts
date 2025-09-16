@@ -1,49 +1,53 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthenticatedUser, handleApiError } from "@/lib/api-auth"
 import { saleService } from "@/lib/services/sale"
+import { saleFiltersSchema } from "@/lib/validations/sale"
 
 export async function GET(request: NextRequest) {
-  try {
-    // Verificar autenticação
-    const user = await getAuthenticatedUser()
-    
-    // Extrair parâmetros de busca
-    const { searchParams } = new URL(request.url)
-    const params = Object.fromEntries(searchParams)
+    try {
+        // Verificar autenticação
+        const user = await getAuthenticatedUser()
 
-    // Usar service para listar vendas
-    const result = await saleService.listSales(params, user)
+        // Extrair e validar parâmetros de busca
+        const { searchParams } = new URL(request.url)
+        const rawParams = Object.fromEntries(searchParams)
 
-    console.log(`✅ [${user.role}] ${user.email} listou ${result.data.length} vendas`)
+        // Validar e converter tipos usando o schema
+        const validatedParams = saleFiltersSchema.parse(rawParams)
 
-    return NextResponse.json(result)
+        // Usar service para listar vendas
+        const result = await saleService.listSales(validatedParams, user)
 
-  } catch (error: any) {
-    const { error: errorMessage, statusCode } = handleApiError(error)
-    return NextResponse.json({ error: errorMessage }, { status: statusCode })
-  }
+        console.log(`✅ [${user.role}] ${user.email} listou ${result.data.length} vendas`)
+
+        return NextResponse.json(result)
+
+    } catch (error: any) {
+        const { error: errorMessage, statusCode } = handleApiError(error)
+        return NextResponse.json({ error: errorMessage }, { status: statusCode })
+    }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    // Verificar autenticação
-    const user = await getAuthenticatedUser()
+    try {
+        // Verificar autenticação
+        const user = await getAuthenticatedUser()
 
-    // Validar dados de entrada
-    const body = await request.json()
+        // Validar dados de entrada
+        const body = await request.json()
 
-    // Usar service para criar venda
-    const sale = await saleService.createSale(body, user)
+        // Usar service para criar venda
+        const sale = await saleService.createSale(body, user)
 
-    console.log(`✅ [${user.role}] ${user.email} criou venda ID: ${sale.id}`)
+        console.log(`✅ [${user.role}] ${user.email} criou venda ID: ${sale.id}`)
 
-    return NextResponse.json(sale, { status: 201 })
+        return NextResponse.json(sale, { status: 201 })
 
-  } catch (error: any) {
-    const { error: errorMessage, statusCode } = handleApiError(error)
-    return NextResponse.json({ 
-      error: errorMessage,
-      ...(error.details && { details: error.details })
-    }, { status: statusCode })
-  }
+    } catch (error: any) {
+        const { error: errorMessage, statusCode } = handleApiError(error)
+        return NextResponse.json({
+            error: errorMessage,
+            ...(error.details && { details: error.details })
+        }, { status: statusCode })
+    }
 }

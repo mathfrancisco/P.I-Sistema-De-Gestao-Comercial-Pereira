@@ -5,6 +5,9 @@ import { getLowStockAnalysis } from '@/lib/services/dashboard'
 import { alertsSchema } from '@/lib/validations/dashboard'
 import { InventoryAlert } from "@/types/dashboard"
 
+// Definir os tipos de prioridade
+type AlertPriority = 'HIGH' | 'MEDIUM' | 'LOW' | 'CRITICAL'
+
 export async function GET(request: NextRequest) {
     try {
         const startTime = Date.now()
@@ -25,7 +28,15 @@ export async function GET(request: NextRequest) {
         const params = Object.fromEntries(searchParams.entries())
         const validatedParams = alertsSchema.parse(params)
 
-        const alerts: { id: string; type: string; priority: string; title: string; message: string; data: InventoryAlert; createdAt: Date }[] = []
+        const alerts: {
+            id: string;
+            type: string;
+            priority: AlertPriority; // Tipo específico
+            title: string;
+            message: string;
+            data: InventoryAlert;
+            createdAt: Date
+        }[] = []
 
         // Alertas de estoque baixo/zerado
         if (validatedParams.types.includes('LOW_STOCK') || validatedParams.types.includes('OUT_OF_STOCK')) {
@@ -50,7 +61,7 @@ export async function GET(request: NextRequest) {
                     alerts.push({
                         id: `low-${alert.productId}`,
                         type: 'LOW_STOCK',
-                        priority: alert.urgencyLevel,
+                        priority: alert.urgencyLevel, // Já é do tipo correto
                         title: `Estoque baixo: ${alert.productName}`,
                         message: `Restam apenas ${alert.currentStock} unidades (${alert.daysUntilOutOfStock} dias)`,
                         data: alert,
@@ -60,8 +71,14 @@ export async function GET(request: NextRequest) {
             })
         }
 
-        // Ordenar por prioridade
-        const priorityOrder = { 'HIGH': 0, 'MEDIUM': 1, 'LOW': 2 }
+        // Ordenar por prioridade - usando Record type
+        const priorityOrder: Record<AlertPriority, number> = {
+            'CRITICAL': 0,
+            'HIGH': 1,
+            'MEDIUM': 2,
+            'LOW': 3
+        }
+
         alerts.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
         const queryTime = Date.now() - startTime

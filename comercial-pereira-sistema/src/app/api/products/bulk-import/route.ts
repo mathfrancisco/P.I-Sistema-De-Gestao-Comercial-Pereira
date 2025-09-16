@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = bulkImportSchema.parse(body)
     
-    const result = await ProductService.bulkImport(data, user.id)
+    const result = await ProductService.bulkImport(data, Number(user.id))
     
     return NextResponse.json({ 
       data: result, 

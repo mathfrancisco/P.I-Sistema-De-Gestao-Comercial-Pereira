@@ -12,8 +12,8 @@ export async function GET(
         const user = await getAuthenticatedUser()
         await requireRole('ADMIN', 'MANAGER', 'SALESPERSON')
 
-        const { id } = inventoryIdSchema.parse({ id: params.id })
-        const inventory = await InventoryService.findById(id)
+        const validatedParams = inventoryIdSchema.parse({ id: params.id })
+        const inventory = await InventoryService.findById(validatedParams.id as number)
 
         return NextResponse.json({ data: inventory, success: true })
 
@@ -29,13 +29,17 @@ export async function PUT(
 ) {
     try {
         const user = await getAuthenticatedUser()
-        await requireRole('ADMIN', 'MANAGER') // Apenas ADMIN e MANAGER podem atualizar
+        await requireRole('ADMIN', 'MANAGER')
 
-        const { id } = inventoryIdSchema.parse({ id: params.id })
+        const validatedParams = inventoryIdSchema.parse({ id: params.id })
         const body = await request.json()
         const data = updateInventorySchema.parse(body)
 
-        const updatedInventory = await InventoryService.update(id, data, user.id)
+        const updatedInventory = await InventoryService.update(
+            validatedParams.id as number,
+            data,
+            Number(user.id)
+        )
 
         return NextResponse.json({ data: updatedInventory, success: true })
 

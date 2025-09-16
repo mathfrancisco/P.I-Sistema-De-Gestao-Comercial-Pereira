@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json()
         const data = stockMovementSchema.parse(body)
 
-        const result = await InventoryService.processStockMovement(data, user.id)
+        const result = await InventoryService.processStockMovement(data, Number(user.id))
 
         return NextResponse.json({
             data: result,

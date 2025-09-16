@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const data = createProductSchema.parse(body)
     
     // 4. Criar produto
-    const product = await ProductService.create(data, user.id)
+    const product = await ProductService.create(data, Number(user.id))
     
     // 5. Resposta
     return NextResponse.json({ 

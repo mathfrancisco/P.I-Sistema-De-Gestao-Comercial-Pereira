@@ -38,7 +38,7 @@ export async function PUT(
     const body = await request.json()
     const data = updateProductSchema.parse(body)
     
-    const updatedProduct = await ProductService.update(id, data, user.id)
+    const updatedProduct = await ProductService.update(id, data, Number(user.id))
     
     return NextResponse.json({ 
       data: updatedProduct, 
@@ -64,7 +64,7 @@ export async function DELETE(
     const { searchParams } = new URL(request.url)
     const reason = searchParams.get('reason') || undefined
     
-    await ProductService.delete(id, user.id, reason)
+    await ProductService.delete(id, Number(user.id), reason)
     
     return NextResponse.json({ 
       success: true,

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get category products using service
     const result = await CategoryService.getCategoryProducts(
       categoryId,
-      params_obj as CategoryProductFiltersInput,
+        params_obj as unknown as CategoryProductFiltersInput,
       user.role
     )
 

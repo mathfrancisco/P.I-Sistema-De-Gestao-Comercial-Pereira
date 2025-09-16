@@ -208,7 +208,7 @@ export async function getTopSellingProducts(
     if (topProducts.length === 0) return []
 
     // Buscar dados detalhados dos produtos
-    const productIds = topProducts.map(p => p.productId)
+    const productIds = topProducts.map((p: { productId: any }) => p.productId)
     const productsDetails = await prisma.product.findMany({
         where: { id: { in: productIds } },
         include: {
@@ -220,7 +220,7 @@ export async function getTopSellingProducts(
 
     // Buscar última venda de cada produto
     const lastSales = await Promise.all(
-        productIds.map(async (productId) => {
+        productIds.map(async (productId: any) => {
             const lastSale = await prisma.saleItem.findFirst({
                 where: { productId },
                 include: { sale: { select: { saleDate: true } } },
@@ -231,9 +231,9 @@ export async function getTopSellingProducts(
     )
 
     // Combinar dados
-    return topProducts.map(item => {
-        const product = productsDetails.find(p => p.id === item.productId)
-        const lastSale = lastSales.find(ls => ls.productId === item.productId)
+    return topProducts.map((item: { productId: any; _sum: { quantity: any; total: number | Decimal | null }; _count: { saleId: any }; _avg: { quantity: any } }) => {
+        const product = productsDetails.find((p: { id: any }) => p.id === item.productId)
+        const lastSale = lastSales.find((ls: { productId: any }) => ls.productId === item.productId)
 
         return {
             productId: item.productId,
@@ -284,7 +284,7 @@ export async function getUserPerformanceMetrics(
     if (userPerformance.length === 0) return []
 
     // Buscar dados dos usuários
-    const userIds = userPerformance.map(p => p.userId)
+    const userIds = userPerformance.map((p: { userId: any }) => p.userId)
     const users = await prisma.user.findMany({
         where: { id: { in: userIds } },
         select: { id: true, name: true, role: true }
@@ -292,7 +292,7 @@ export async function getUserPerformanceMetrics(
 
     // Buscar categoria mais vendida por cada vendedor
     const topCategoriesByUser = await Promise.all(
-        userIds.map(async (userId) => {
+        userIds.map(async (userId: any) => {
             const topCategory = await prisma.saleItem.groupBy({
                 by: ['productId'],
                 where: {
@@ -322,9 +322,9 @@ export async function getUserPerformanceMetrics(
     )
 
     // Combinar todos os dados
-    return userPerformance.map(performance => {
-        const user = users.find(u => u.id === performance.userId)
-        const topCategory = topCategoriesByUser.find(tc => tc.userId === performance.userId)
+    return userPerformance.map((performance: { userId: any; _count: { id: number }; _sum: { total: number | Decimal | null }; _avg: { total: number | Decimal | null } }) => {
+        const user = users.find((u: { id: any }) => u.id === performance.userId)
+        const topCategory = topCategoriesByUser.find((tc: { userId: any }) => tc.userId === performance.userId)
 
         // Calcular eficiência (vendas por dia no período)
         const daysInPeriod = Math.ceil(
@@ -390,7 +390,7 @@ export async function getCategorySalesMetrics(
     if (categorySales.length === 0) return []
 
     // Buscar produtos com categorias
-    const productIds = categorySales.map(cs => cs.productId)
+    const productIds = categorySales.map((cs: { productId: any }) => cs.productId)
     const products = await prisma.product.findMany({
         where: {
             id: { in: productIds },
@@ -409,8 +409,8 @@ export async function getCategorySalesMetrics(
         totalQuantitySold: number
     }>()
 
-    categorySales.forEach(sale => {
-        const product = products.find(p => p.id === sale.productId)
+    categorySales.forEach((sale: { productId: any; _count: { saleId: number }; _sum: { total: number | Decimal | null; quantity: any } }) => {
+        const product = products.find((p: { id: any }) => p.id === sale.productId)
         if (product) {
             const categoryId = product.categoryId
             const existing = categoryMetrics.get(categoryId) || {
@@ -496,7 +496,7 @@ export async function getLowStockAnalysis(
     })
 
     // Calcular velocidade de vendas e urgência
-    const alerts = lowStockProducts.map(inventory => {
+    const alerts = lowStockProducts.map((inventory: { product: { saleItems: any[]; id: any; name: any; code: any; category: { name: any } }; quantity: number; minStock: any; maxStock: any }) => {
         const salesLast30Days = inventory.product.saleItems.reduce(
             (total, item) => total + item.quantity, 0
         )
@@ -532,10 +532,10 @@ export async function getLowStockAnalysis(
 
     // Filtrar por nível de urgência se especificado
     const filtered = urgencyLevel && urgencyLevel !== 'ALL'
-        ? alerts.filter(alert => alert.urgencyLevel === urgencyLevel)
+        ? alerts.filter((alert: { urgencyLevel: string }) => alert.urgencyLevel === urgencyLevel)
         : alerts
 
-    return filtered.sort((a, b) => a.daysUntilOutOfStock - b.daysUntilOutOfStock)
+    return filtered.sort((a: { daysUntilOutOfStock: number }, b: { daysUntilOutOfStock: number }) => a.daysUntilOutOfStock - b.daysUntilOutOfStock)
 }
 
 // =================== FUNÇÕES AUXILIARES ===================
@@ -599,14 +599,14 @@ async function getTopCustomers(periodDates: PeriodDates, limit = 5): Promise<Cus
 
     if (topCustomers.length === 0) return []
 
-    const customerIds = topCustomers.map(tc => tc.customerId)
+    const customerIds = topCustomers.map((tc: { customerId: any }) => tc.customerId)
     const customers = await prisma.customer.findMany({
         where: { id: { in: customerIds } }
     })
 
     // Calcular última compra
     const lastPurchases = await Promise.all(
-        customerIds.map(async (customerId) => {
+        customerIds.map(async (customerId: any) => {
             const lastSale = await prisma.sale.findFirst({
                 where: { customerId, status: 'COMPLETED' },
                 orderBy: { saleDate: 'desc' }
@@ -615,9 +615,9 @@ async function getTopCustomers(periodDates: PeriodDates, limit = 5): Promise<Cus
         })
     )
 
-    return topCustomers.map(tc => {
-        const customer = customers.find(c => c.id === tc.customerId)
-        const lastPurchase = lastPurchases.find(lp => lp.customerId === tc.customerId)
+    return topCustomers.map((tc: { customerId: any; _sum: { total: number | Decimal | null }; _count: { id: any }; _avg: { total: number | Decimal | null } }) => {
+        const customer = customers.find((c: { id: any }) => c.id === tc.customerId)
+        const lastPurchase = lastPurchases.find((lp: { customerId: any }) => lp.customerId === tc.customerId)
 
         return {
             customerId: tc.customerId,
