@@ -28,8 +28,18 @@ export class SupplierService {
 
     static async create(data: CreateSupplierInput, currentUserId: number): Promise<SupplierResponse> {
         try {
+            // Validate required fields
+            if (!data.name || !data.name.trim()) {
+                throw new ApiError('Nome do fornecedor é obrigatório', 400)
+            }
+
             // 1. Formatar dados de entrada
             const formattedData = this.formatSupplierData(data)
+
+            // Ensure name is present for create operation
+            if (!formattedData.name) {
+                throw new ApiError('Nome do fornecedor é obrigatório', 400)
+            }
 
             // 2. Validar CNPJ se fornecido
             if (formattedData.cnpj && !validateCNPJ(formattedData.cnpj)) {
@@ -48,7 +58,7 @@ export class SupplierService {
 
             // 5. Criar fornecedor no banco
             const supplier = await prisma.supplier.create({
-                data: formattedData
+                data: formattedData as any // Type assertion as temporary fix until Prisma client is regenerated
             })
 
             // 6. Log da operação
@@ -62,16 +72,20 @@ export class SupplierService {
 
             return this.formatSupplierResponse(supplier)
 
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof ApiError) throw error
 
             // Tratar erros específicos do Prisma
-            if (error.code === 'P2002') {
-                const field = error.meta?.target?.[0]
-                if (field === 'email') {
-                    throw new ApiError(SUPPLIER_ERROR_MESSAGES.EMAIL_IN_USE, 409)
-                } else if (field === 'cnpj') {
-                    throw new ApiError(SUPPLIER_ERROR_MESSAGES.CNPJ_IN_USE, 409)
+            if (error && typeof error === 'object' && 'code' in error) {
+                const prismaError = error as { code: string; meta?: { target?: string[] } }
+                
+                if (prismaError.code === 'P2002') {
+                    const field = prismaError.meta?.target?.[0]
+                    if (field === 'email') {
+                        throw new ApiError(SUPPLIER_ERROR_MESSAGES.EMAIL_IN_USE, 409)
+                    } else if (field === 'cnpj') {
+                        throw new ApiError(SUPPLIER_ERROR_MESSAGES.CNPJ_IN_USE, 409)
+                    }
                 }
             }
 
@@ -263,15 +277,19 @@ export class SupplierService {
 
             return this.formatSupplierResponse(updatedSupplier)
 
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof ApiError) throw error
 
-            if (error.code === 'P2002') {
-                const field = error.meta?.target?.[0]
-                if (field === 'email') {
-                    throw new ApiError(SUPPLIER_ERROR_MESSAGES.EMAIL_IN_USE, 409)
-                } else if (field === 'cnpj') {
-                    throw new ApiError(SUPPLIER_ERROR_MESSAGES.CNPJ_IN_USE, 409)
+            if (error && typeof error === 'object' && 'code' in error) {
+                const prismaError = error as { code: string; meta?: { target?: string[] } }
+                
+                if (prismaError.code === 'P2002') {
+                    const field = prismaError.meta?.target?.[0]
+                    if (field === 'email') {
+                        throw new ApiError(SUPPLIER_ERROR_MESSAGES.EMAIL_IN_USE, 409)
+                    } else if (field === 'cnpj') {
+                        throw new ApiError(SUPPLIER_ERROR_MESSAGES.CNPJ_IN_USE, 409)
+                    }
                 }
             }
 
@@ -391,7 +409,7 @@ export class SupplierService {
                 prisma.supplier.count(),
                 prisma.supplier.count({ where: { isActive: true } }),
                 prisma.supplier.groupBy({
-                    by: ['state'],
+                    by: ['state'] as const, // Fix the typing issue
                     _count: { state: true },
                     where: {
                         isActive: true,
@@ -419,7 +437,7 @@ export class SupplierService {
                 }, {} as Record<string, number>)
             }
 
-        } catch (error) {
+        } catch (error: unknown) {
             throw new ApiError('Erro ao obter estatísticas de fornecedores', 500)
         }
     }
@@ -494,20 +512,24 @@ export class SupplierService {
     // =================== PRIVATE METHODS ===================
 
     private static formatSupplierData(data: CreateSupplierInput | UpdateSupplierInput) {
-        return {
-            ...data,
-            name: data.name?.trim(),
-            contactPerson: data.contactPerson?.trim() || null,
-            email: data.email?.toLowerCase().trim() || null,
-            phone: data.phone ? formatPhone(data.phone) : null,
-            address: data.address?.trim() || null,
-            city: data.city?.trim() || null,
-            state: data.state?.toUpperCase() || null,
-            zipCode: data.zipCode ? formatCEP(data.zipCode) : null,
-            cnpj: data.cnpj ? formatCNPJ(data.cnpj) : null,
-            website: data.website?.trim() || null,
-            notes: data.notes?.trim() || null
+        // For create operations, ensure name is always a string
+        // For update operations, name can be undefined
+        const baseData = {
+            ...(data.name !== undefined && { name: data.name.trim() }),
+            ...(data.contactPerson !== undefined && { contactPerson: data.contactPerson?.trim() || null }),
+            ...(data.email !== undefined && { email: data.email?.toLowerCase().trim() || null }),
+            ...(data.phone !== undefined && { phone: data.phone ? formatPhone(data.phone) : null }),
+            ...(data.address !== undefined && { address: data.address?.trim() || null }),
+            ...(data.city !== undefined && { city: data.city?.trim() || null }),
+            ...(data.state !== undefined && { state: data.state?.toUpperCase() || null }),
+            ...(data.zipCode !== undefined && { zipCode: data.zipCode ? formatCEP(data.zipCode) : null }),
+            ...(data.cnpj !== undefined && { cnpj: data.cnpj ? formatCNPJ(data.cnpj) : null }),
+            ...(data.website !== undefined && { website: data.website?.trim() || null }),
+            ...(data.notes !== undefined && { notes: data.notes?.trim() || null }),
+            ...(data.isActive !== undefined && { isActive: data.isActive })
         }
+
+        return baseData
     }
 
     private static formatSupplierResponse(supplier: Supplier): SupplierResponse {

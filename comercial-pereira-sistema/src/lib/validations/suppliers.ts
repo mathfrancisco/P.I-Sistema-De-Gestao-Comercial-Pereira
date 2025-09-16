@@ -206,7 +206,7 @@ export const supplierWithProductsSchema = supplierResponseSchema.extend({
 export type SupplierWithProducts = z.infer<typeof supplierWithProductsSchema>
 
 // Validações customizadas
-export const validateCNPJ = (cnpj: string): boolean => {
+export const validateCNPJ = (cnpj: string | null | undefined): boolean => {
     if (!cnpj) return true // CNPJ é opcional
 
     // Remove formatação
@@ -236,8 +236,8 @@ export const validateCNPJ = (cnpj: string): boolean => {
     return numbers === base + digit1 + digit2
 }
 
-export const formatCNPJ = (cnpj: string): string => {
-    if (!cnpj) return ''
+export const formatCNPJ = (cnpj: string | null | undefined): string | null => {
+    if (!cnpj) return null
 
     const numbers = cnpj.replace(/[^\d]/g, '')
 
@@ -248,8 +248,8 @@ export const formatCNPJ = (cnpj: string): string => {
     return cnpj
 }
 
-export const formatPhone = (phone: string): string => {
-    if (!phone) return ''
+export const formatPhone = (phone: string | null | undefined): string | null => {
+    if (!phone) return null
 
     const numbers = phone.replace(/[^\d]/g, '')
 
@@ -262,8 +262,8 @@ export const formatPhone = (phone: string): string => {
     return phone
 }
 
-export const formatCEP = (cep: string): string => {
-    if (!cep) return ''
+export const formatCEP = (cep: string | null | undefined): string | null => {
+    if (!cep) return null
 
     const numbers = cep.replace(/[^\d]/g, '')
 

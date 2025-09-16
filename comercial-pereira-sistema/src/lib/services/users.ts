@@ -14,6 +14,7 @@ import {
     USER_ERROR_MESSAGES,
     validateStrongPassword
 } from '@/lib/validations/users'
+import { User } from '@prisma/client'
 
 export class ApiError extends Error {
     constructor(message: string, public statusCode: number = 500) {
@@ -59,7 +60,7 @@ export class UserService {
             if (error instanceof ApiError) throw error
 
             // Tratar erros específicos do Prisma
-            if (error.code === 'P2002') {
+            if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'P2002') {
                 throw new ApiError(USER_ERROR_MESSAGES.EMAIL_IN_USE, 409)
             }
 
@@ -195,7 +196,7 @@ export class UserService {
         } catch (error) {
             if (error instanceof ApiError) throw error
 
-            if (error.code === 'P2002') {
+            if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'P2002') {
                 throw new ApiError(USER_ERROR_MESSAGES.EMAIL_IN_USE, 409)
             }
 

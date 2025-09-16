@@ -69,7 +69,12 @@ model Supplier {
   email         String?  @unique
   phone         String?
   address       String?
+  city          String?  // Add this field
+  state         String?  // Add this field  
+  zipCode       String?  // Add this field
   cnpj          String?  @unique
+  website       String?  // Add this field
+  notes         String?  // Add this field
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
