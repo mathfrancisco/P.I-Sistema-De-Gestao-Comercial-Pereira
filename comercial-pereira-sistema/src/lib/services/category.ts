@@ -105,8 +105,8 @@ export interface ProductInCategory {
 export class CategoryService {
   // =================== LIST CATEGORIES ===================
   
-  static async findMany(
-    filters: CategoryFiltersInput,
+   static async findMany(
+    filters: unknown, // Changed from CategoryFiltersInput
     userRole: string
   ): Promise<{
     categories: CategoryListItem[]
@@ -120,7 +120,7 @@ export class CategoryService {
     }
   }> {
     try {
-      // Validate filters
+      // Validate filters - Zod will handle defaults and coercion
       const validatedFilters = categoryFiltersSchema.parse(filters)
 
       const {

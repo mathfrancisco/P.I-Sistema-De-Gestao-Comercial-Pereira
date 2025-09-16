@@ -172,122 +172,122 @@ export class CustomerService {
   // =================== LIST CUSTOMERS ===================
 
   static async findMany(
-    filters: CustomerFiltersInput,
-    userRole: string
-  ): Promise<{
-    customers: CustomerListItem[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNextPage: boolean;
-      hasPrevPage: boolean;
-    };
-    filters: CustomerFiltersInput; // Return complete validated filters
-  }> {
-    try {
-      // Validate filters
-      const validatedFilters = customerFiltersSchema.parse(filters);
+  filters: unknown, // Changed from CustomerFiltersInput
+  userRole: string
+): Promise<{
+  customers: CustomerListItem[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
+  filters: CustomerFiltersInput  // Return complete validated filters
+}> {
+  try {
+    // Validate filters - Zod will handle defaults and coercion
+    const validatedFilters = customerFiltersSchema.parse(filters)
 
-      const {
-        search,
-        type,
-        city,
-        state,
-        isActive,
-        hasEmail,
-        hasDocument,
-        hasPurchases,
-        page,
-        limit,
-        sortBy,
-        sortOrder,
-      } = validatedFilters;
+    const {
+      search,
+      type,
+      city,
+      state,
+      isActive,
+      hasEmail,
+      hasDocument,
+      hasPurchases,
+      page,
+      limit,
+      sortBy,
+      sortOrder
+    } = validatedFilters
 
-      // Build WHERE clause
-      const where: Prisma.CustomerWhereInput = {
-        // Default to active customers only
-        isActive: isActive ?? true,
+    // Build WHERE clause
+    const where: Prisma.CustomerWhereInput = {
+      // Default to active customers only
+      isActive: isActive ?? true,
+      
+      // Type filter
+      ...(type && { type }),
+      
+      // Location filters
+      ...(city && { city: { contains: city, mode: 'insensitive' } }),
+      ...(state && { state: { equals: state, mode: 'insensitive' } }),
+      
+      // Conditional filters
+      ...(hasEmail !== undefined && {
+        email: hasEmail ? { not: null } : null
+      }),
+      ...(hasDocument !== undefined && {
+        document: hasDocument ? { not: null } : null
+      }),
+      
+      // Text search
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { document: { contains: cleanDocument(search) } },
+          { phone: { contains: search } }
+        ]
+      })
+    }
 
-        // Type filter
-        ...(type && { type }),
+    // Filter for customers with/without purchases
+    if (hasPurchases !== undefined) {
+      if (hasPurchases) {
+        where.sales = { some: {} }
+      } else {
+        where.sales = { none: {} }
+      }
+    }
 
-        // Location filters
-        ...(city && { city: { contains: city, mode: "insensitive" } }),
-        ...(state && { state: { equals: state, mode: "insensitive" } }),
+    // Configure ordering
+    let orderBy: Prisma.CustomerOrderByWithRelationInput = {}
 
-        // Conditional filters
-        ...(hasEmail !== undefined && {
-          email: hasEmail ? { not: null } : null,
-        }),
-        ...(hasDocument !== undefined && {
-          document: hasDocument ? { not: null } : null,
-        }),
-
-        // Text search
-        ...(search && {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-            { document: { contains: cleanDocument(search) } },
-            { phone: { contains: search } },
-          ],
-        }),
-      };
-
-      // Filter for customers with/without purchases
-      if (hasPurchases !== undefined) {
-        if (hasPurchases) {
-          where.sales = { some: {} };
-        } else {
-          where.sales = { none: {} };
+    if (sortBy === 'lastPurchase') {
+      orderBy = {
+        sales: {
+          _count: sortOrder as Prisma.SortOrder
         }
       }
+    } else {
+      orderBy = { [sortBy]: sortOrder as Prisma.SortOrder }
+    }
 
-      // Configure ordering
-      let orderBy: Prisma.CustomerOrderByWithRelationInput = {};
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit
 
-      if (sortBy === "lastPurchase") {
-        orderBy = {
-          sales: {
-            _count: sortOrder as Prisma.SortOrder,
+    // Fetch customers and total
+    const [customers, total] = await Promise.all([
+      prisma.customer.findMany({
+        where,
+        include: {
+          _count: {
+            select: { sales: true }
           },
-        };
-      } else {
-        orderBy = { [sortBy]: sortOrder as Prisma.SortOrder };
-      }
-
-      // Calculate offset for pagination
-      const offset = (page - 1) * limit;
-
-      // Fetch customers and total
-      const [customers, total] = await Promise.all([
-        prisma.customer.findMany({
-          where,
-          include: {
-            _count: {
-              select: { sales: true },
-            },
-            // For admins/managers, include basic statistics
-            ...(["ADMIN", "MANAGER"].includes(userRole) && {
-              sales: {
-                where: { status: "COMPLETED" },
-                select: {
-                  total: true,
-                  saleDate: true,
-                },
-                orderBy: { saleDate: "desc" },
-                take: 1, // Last purchase
+          // For admins/managers, include basic statistics
+          ...((['ADMIN', 'MANAGER'].includes(userRole)) && {
+            sales: {
+              where: { status: 'COMPLETED' },
+              select: {
+                total: true,
+                saleDate: true
               },
-            }),
-          },
-          orderBy,
-          skip: offset,
-          take: limit,
-        }),
-        prisma.customer.count({ where }),
-      ]);
+              orderBy: { saleDate: 'desc' },
+              take: 1 // Last purchase
+            }
+          })
+        },
+        orderBy,
+        skip: offset,
+        take: limit
+      }),
+      prisma.customer.count({ where })
+    ]);
 
       // Calculate pagination info
       const totalPages = Math.ceil(total / limit);
