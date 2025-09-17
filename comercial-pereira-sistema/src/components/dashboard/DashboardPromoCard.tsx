@@ -1,5 +1,6 @@
 import React from "react";
 import {Star, XCircle, Zap} from "lucide-react";
+import {Button} from "@/components/ui/button";
 
 interface DashboardPromoCardProps {
     title: string;

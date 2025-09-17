@@ -34,64 +34,108 @@ export const ProductPopularTable: React.FC<ProductPopularTableProps> = ({
         }
     };
 
+    // Componente Sparkline simples
+    const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
+        const max = Math.max(...data);
+        const min = Math.min(...data);
+        const range = max - min || 1;
+
+        return (
+            <div className="flex items-end space-x-px h-8 w-16">
+                {data.map((value, index) => {
+                    const height = ((value - min) / range) * 24 + 4;
+                    return (
+                        <div
+                            key={index}
+                            className="bg-blue-400 rounded-sm flex-1 opacity-80"
+                            style={{ height: `${height}px` }}
+                        />
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const getStockBadge = (stock: number) => {
+        if (stock === 0) {
+            return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Esgotado</span>;
+        } else if (stock < 10) {
+            return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Baixo</span>;
+        } else {
+            return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Em estoque</span>;
+        }
+    };
+
     return (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900">Produtos Populares</h3>
-                    <p className="text-sm text-gray-500">Top 10 produtos mais vendidos</p>
+                    <p className="text-sm text-gray-500">Máximo 10 produtos mais vendidos</p>
                 </div>
                 <Button variant="secondary" size="sm" rightIcon={ArrowRight}>
-                    Ver todos
+                    Ver todos produtos
                 </Button>
             </div>
 
-            <div className="space-y-3">
-                {products.slice(0, 10).map((product, index) => (
-                    <div
-                        key={product.productId}
-                        className="flex items-center justify-between p-4 rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer"
-                        onClick={() => onProductClick?.(product.productId)}
-                    >
-                        <div className="flex items-center space-x-4">
-                            {/* Ranking */}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                index < 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                                {index + 1}
-                            </div>
+            {/* Compact Table */}
+            <div className="overflow-hidden">
+                <table className="w-full">
+                    <thead>
+                    <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Produto</th>
+                        <th className="text-right py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Preço</th>
+                        <th className="text-center py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Vendas</th>
+                        <th className="text-center py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Estoque</th>
+                        <th className="text-center py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tendência</th>
+                    </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                    {products.slice(0, 10).map((product, index) => (
+                        <tr
+                            key={product.productId}
+                            className="hover:bg-gray-50 cursor-pointer transition-colors"
+                            onClick={() => onProductClick?.(product.productId)}
+                        >
+                            <td className="py-4">
+                                <div className="flex items-center space-x-3">
+                                    {/* Thumbnail (40px) */}
+                                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Package className="w-5 h-5 text-gray-400" />
+                                    </div>
 
-                            {/* Product Image Placeholder */}
-                            <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                                <Package className="w-5 h-5 text-gray-400" />
-                            </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-gray-900 truncate">{product.productName}</p>
+                                        <p className="text-sm text-gray-500">{product.productCode}</p>
+                                    </div>
+                                </div>
+                            </td>
 
-                            {/* Product Info */}
-                            <div>
-                                <p className="font-medium text-gray-900">{product.productName}</p>
-                                <p className="text-sm text-gray-500">{product.productCode} • {product.categoryName}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-6">
-                            {/* Sales */}
-                            <div className="text-right">
-                                <p className="font-medium text-gray-900">{product.salesCount} vendas</p>
-                                <p className="text-sm text-gray-500">
-                                    R$ {new Intl.NumberFormat('pt-BR').format(product.totalRevenue)}
+                            <td className="py-4 text-right">
+                                <p className="font-medium text-gray-900">
+                                    R$ {new Intl.NumberFormat('pt-BR').format(Number(product.totalRevenue))}
                                 </p>
-                            </div>
+                            </td>
 
-                            {/* Stock Badge */}
-                            <div className="flex items-center space-x-2">
-                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                  {product.totalQuantitySold} un
-                </span>
-                                {getTrendIcon(product.trend)}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                            <td className="py-4 text-center">
+                                <p className="font-medium text-gray-900">{product.salesCount}</p>
+                            </td>
+
+                            <td className="py-4 text-center">
+                                {getStockBadge(product.totalQuantitySold)}
+                            </td>
+
+                            <td className="py-4">
+                                <div className="flex items-center justify-center space-x-2">
+                                    {/* Sparkline mostrando tendência */}
+                                    <Sparkline data={[12, 15, 18, 14, 20, 25, product.salesCount]} />
+                                    {getTrendIcon(product.trend)}
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

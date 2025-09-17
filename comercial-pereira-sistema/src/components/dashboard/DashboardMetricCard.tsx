@@ -7,7 +7,7 @@ interface DashboardMetricCardProps {
     value: string | number;
     change?: number;
     trend?: 'UP' | 'DOWN' | 'STABLE';
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType;
     color?: string;
     bgColor?: string;
     loading?: boolean;
@@ -27,7 +27,7 @@ export const DashboardMetricCard: React.FC<DashboardMetricCardProps> = ({
                                                                         }) => {
     if (loading) {
         return (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-white rounded-xl border border-gray-200 h-30 p-5">
                 <Skeleton lines={3} height="1.5rem" />
             </div>
         );
@@ -50,20 +50,20 @@ export const DashboardMetricCard: React.FC<DashboardMetricCardProps> = ({
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200">
-            <div className="flex items-center justify-between">
+        <div className="bg-white rounded-xl border border-gray-200 h-30 p-5 hover:shadow-lg transition-shadow duration-200">
+            <div className="flex items-start justify-between h-full">
                 <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
                         {label}
                     </p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                    <p className="text-3xl font-bold text-gray-900 mb-2">
                         {typeof value === 'number' && value > 999
                             ? new Intl.NumberFormat('pt-BR').format(value)
                             : value
                         }
                     </p>
                     {change !== undefined && (
-                        <div className="flex items-center mt-2">
+                        <div className="flex items-center">
                             {getTrendIcon()}
                             <span className={`text-sm font-medium ml-1 ${getTrendColor()}`}>
                 {change > 0 ? '+' : ''}{change}%
@@ -73,8 +73,8 @@ export const DashboardMetricCard: React.FC<DashboardMetricCardProps> = ({
                     )}
                 </div>
 
-                <div className={`w-12 h-12 ${bgColor} rounded-lg flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 ${color}`} />
+                <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                    <Icon  />
                 </div>
             </div>
         </div>
