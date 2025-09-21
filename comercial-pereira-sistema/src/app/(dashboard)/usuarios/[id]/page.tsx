@@ -6,7 +6,7 @@ import { UserProfileHeader } from '@/components/auth/UserProfile';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
 import { ArrowLeft, Download } from 'lucide-react';
-import { UserResponse, UserRole } from '@/lib/validations/users';
+import { UserResponse, UserRole } from '@/types/user';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { UserActivity, UserActivityLog } from '@/components/users/UserActivityLog';
 import { UserPermissionMatrix } from '@/components/users/UserPermissionMatrix';

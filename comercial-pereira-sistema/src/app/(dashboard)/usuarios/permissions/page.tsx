@@ -10,7 +10,7 @@ import {
   ArrowLeft, Shield, Search, Users, 
   AlertCircle, Download, Upload 
 } from 'lucide-react';
-import { UserResponse, UserRole } from '@/lib/validations/users';
+import { UserResponse, UserRole } from '@/types/user';
 import { UserPermissionMatrix } from '@/components/users/UserPermissionMatrix';
 
 interface UserPermission {

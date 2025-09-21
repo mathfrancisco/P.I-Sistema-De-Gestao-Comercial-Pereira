@@ -6,7 +6,8 @@ import {
     CreateCustomerRequest,
     UpdateCustomerRequest,
     CustomerWithStats,
-    CustomerSelectOption
+    CustomerSelectOption,
+    CustomerType
 } from '@/types/customer'
 
 interface UseCustomersOptions {
@@ -52,7 +53,7 @@ export const useCustomers = (options: UseCustomersOptions = {}): UseCustomersRet
         sortBy: 'name',
         sortOrder: 'asc',
         isActive: options.isActive ?? true,
-        type: options.type,
+        type: options.type as CustomerType | undefined,
         city: options.city,
         state: options.state
     })
@@ -310,6 +311,20 @@ export const useValidateDocument = () => {
     return { validateDocument, loading, error }
 }
 
+// Define the proper interface for customer sales filters
+interface CustomerSalesFilters {
+    status?: 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
+    dateFrom?: Date;
+    dateTo?: Date;
+    minTotal?: number;
+    maxTotal?: number;
+    page: number;
+    limit: number;
+    sortBy: 'saleDate' | 'total' | 'status';
+    sortOrder: 'asc' | 'desc';
+    includeItems: boolean;
+}
+
 // Hook para buscar vendas de um cliente
 export const useCustomerSales = (customerId: number | null) => {
     const [sales, setSales] = useState<any[]>([])
@@ -330,12 +345,18 @@ export const useCustomerSales = (customerId: number | null) => {
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<CustomerSalesFilters>({
         page: 1,
         limit: 10,
         sortBy: 'saleDate',
         sortOrder: 'desc',
-        includeItems: false
+        includeItems: false,
+        // Initialize optional filter properties
+        status: undefined,
+        dateFrom: undefined,
+        dateTo: undefined,
+        minTotal: undefined,
+        maxTotal: undefined
     })
 
     const fetchSales = useCallback(async () => {
@@ -348,7 +369,11 @@ export const useCustomerSales = (customerId: number | null) => {
             const params = new URLSearchParams()
             Object.entries(filters).forEach(([key, value]) => {
                 if (value !== undefined && value !== null && value !== '') {
-                    params.set(key, String(value))
+                    if (value instanceof Date) {
+                        params.set(key, value.toISOString())
+                    } else {
+                        params.set(key, String(value))
+                    }
                 }
             })
 
@@ -374,7 +399,7 @@ export const useCustomerSales = (customerId: number | null) => {
         fetchSales()
     }, [fetchSales])
 
-    const updateFilters = useCallback((newFilters: any) => {
+    const updateFilters = useCallback((newFilters: Partial<CustomerSalesFilters>) => {
         setFilters(prev => ({
             ...prev,
             ...newFilters,

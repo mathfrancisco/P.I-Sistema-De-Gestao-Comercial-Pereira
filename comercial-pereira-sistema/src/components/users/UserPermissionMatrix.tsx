@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { UserRole } from "@/lib/validations/users";
+import { UserRole } from "@/types/user";
 
 interface Permission {
   id: string;

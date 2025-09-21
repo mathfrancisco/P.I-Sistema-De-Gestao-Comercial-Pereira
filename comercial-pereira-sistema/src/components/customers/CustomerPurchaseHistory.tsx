@@ -23,6 +23,9 @@ interface SaleStatus {
     REFUNDED: { color: string; icon: any; label: string };
 }
 
+// Define the status type for proper typing
+type StatusType = 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
+
 export const CustomerPurchaseHistory: React.FC<CustomerPurchaseHistoryProps> = ({
                                                                                     customerId,
                                                                                     customerName,
@@ -109,6 +112,19 @@ export const CustomerPurchaseHistory: React.FC<CustomerPurchaseHistoryProps> = (
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    // Helper function to handle status change with proper typing
+    const handleStatusChange = (value: string) => {
+        if (value === '') {
+            updateFilters({ status: undefined });
+        } else {
+            // Cast to the proper status type after validation
+            const validStatuses: StatusType[] = ['DRAFT', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'REFUNDED'];
+            if (validStatuses.includes(value as StatusType)) {
+                updateFilters({ status: value as StatusType });
+            }
+        }
     };
 
     if (error) {
@@ -202,7 +218,7 @@ export const CustomerPurchaseHistory: React.FC<CustomerPurchaseHistoryProps> = (
                                 </label>
                                 <select
                                     value={filters.status || ''}
-                                    onChange={(e) => updateFilters({ status: e.target.value || undefined })}
+                                    onChange={(e) => handleStatusChange(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
                                     <option value="">Todos os status</option>

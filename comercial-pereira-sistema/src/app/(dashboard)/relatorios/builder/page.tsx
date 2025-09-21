@@ -1,25 +1,25 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { ReportType, REPORT_TITLES } from '@/types/report'
-import { useReportTemplates } from '@/lib/hooks/useReportTemplates'
-import { ReportBuilder } from '@/components/report/ReportBuilder'
+} from "@/components/ui/select";
+import { ReportType, REPORT_TITLES } from "@/types/report";
+import { useReportTemplates } from "@/lib/hooks/useReportTemplates";
+import { ReportBuilder } from "@/components/report/ReportBuilder";
 
 export default function ReportBuilderPage() {
-  const router = useRouter()
-  const { saveTemplate } = useReportTemplates()
-  const [selectedType, setSelectedType] = useState<ReportType>('sales')
+  const router = useRouter();
+  const { saveTemplate } = useReportTemplates();
+  const [selectedType, setSelectedType] = useState<ReportType>("sales");
 
   const handleSave = async (config: any) => {
     await saveTemplate({
@@ -28,19 +28,19 @@ export default function ReportBuilderPage() {
       type: selectedType,
       filters: {
         type: selectedType,
-        ...config.settings
+        ...config.settings,
       },
       isPublic: false,
-      createdBy: 'current-user@example.com' // Get from auth context
-    })
-    
-    router.push('/reports/templates')
-  }
+      createdBy: "current-user@example.com", // Get from auth context
+    });
+
+    router.push("/reports/templates");
+  };
 
   const handlePreview = (config: any) => {
-    console.log('Preview:', config)
+    console.log("Preview:", config);
     // Implement preview logic
-  }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -50,7 +50,7 @@ export default function ReportBuilderPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push('/reports')}
+            onClick={() => router.push("/reports")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -62,7 +62,10 @@ export default function ReportBuilderPage() {
           </div>
         </div>
 
-        <Select value={selectedType} onValueChange={(v: ReportType) => setSelectedType(v)}>
+        <Select
+          value={selectedType}
+          onValueChange={(v: string) => setSelectedType(v as ReportType)}
+        >
           <SelectTrigger className="w-48">
             <SelectValue />
           </SelectTrigger>
@@ -83,5 +86,5 @@ export default function ReportBuilderPage() {
         onPreview={handlePreview}
       />
     </div>
-  )
+  );
 }

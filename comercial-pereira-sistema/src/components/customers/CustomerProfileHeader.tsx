@@ -6,14 +6,50 @@ import {
     CheckCircle, XCircle, Phone, Mail, MapPin
 } from 'lucide-react';
 import {
-    CustomerWithStats,
     CustomerType,
     formatDocument,
-    getCustomerSegment
+    getCustomerSegment,
+    CustomerSegment
 } from '@/types/customer';
 
+// Define the correct interface that matches the service layer
+interface CustomerWithStatistics {
+  id: number;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  document?: string | null;
+  type: CustomerType;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  statistics: {
+    totalSales: number;
+    totalSpent: number;
+    averageOrderValue: number;
+    firstPurchase?: Date;
+    lastPurchase?: Date;
+    favoriteCategories: Array<{
+      categoryName: string;
+      purchaseCount: number;
+      totalSpent: number;
+    }>;
+  };
+  recentSales: Array<{
+    id: number;
+    total: number;
+    saleDate: Date;
+    itemCount: number;
+  }>;
+}
+
 interface CustomerProfileHeaderProps {
-    customer: CustomerWithStats;
+    customer: CustomerWithStatistics;
     onEdit: () => void;
     onNewSale: () => void;
     onSendMessage?: () => void;
@@ -50,17 +86,28 @@ export const CustomerProfileHeader: React.FC<CustomerProfileHeaderProps> = ({
         );
     };
 
+    // Create a mock stats object for the getCustomerSegment function
+    const mockStats = {
+        totalPurchases: customer.statistics.totalSpent,
+        purchaseCount: customer.statistics.totalSales,
+        averageOrderValue: customer.statistics.averageOrderValue,
+        lastPurchaseDate: customer.statistics.lastPurchase || null,
+        frequency: customer.statistics.totalSales / 12, // monthly frequency estimate
+        preferredCategories: customer.statistics.favoriteCategories.map(cat => cat.categoryName),
+        totalSavings: 0
+    };
+
     // Determinar segmento do cliente
-    const segment = getCustomerSegment(customer.statistics);
+    const segment = getCustomerSegment(mockStats);
 
     // Badge configs
     const getSegmentBadge = () => {
         const badges = {
-            VIP: { color: 'bg-yellow-100 text-yellow-800', icon: Crown, label: 'VIP' },
-            FREQUENT: { color: 'bg-blue-100 text-blue-800', icon: Star, label: 'Frequente' },
-            REGULAR: { color: 'bg-gray-100 text-gray-800', icon: User, label: 'Regular' },
-            NEW: { color: 'bg-green-100 text-green-800', icon: Package, label: 'Novo' },
-            INACTIVE: { color: 'bg-red-100 text-red-800', icon: XCircle, label: 'Inativo' }
+            [CustomerSegment.VIP]: { color: 'bg-yellow-100 text-yellow-800', icon: Crown, label: 'VIP' },
+            [CustomerSegment.FREQUENT]: { color: 'bg-blue-100 text-blue-800', icon: Star, label: 'Frequente' },
+            [CustomerSegment.REGULAR]: { color: 'bg-gray-100 text-gray-800', icon: User, label: 'Regular' },
+            [CustomerSegment.NEW]: { color: 'bg-green-100 text-green-800', icon: Package, label: 'Novo' },
+            [CustomerSegment.INACTIVE]: { color: 'bg-red-100 text-red-800', icon: XCircle, label: 'Inativo' }
         };
 
         const badge = badges[segment];

@@ -1,4 +1,4 @@
-import {UserResponse, UserRole} from "@/types";
+import {UserResponse, UserRole} from "@/types/user";
 import React from "react";
 import {CheckCircle, Crown, Mail, Shield, UserCheck, XCircle} from "lucide-react";
 import {Button} from "@/components/ui/button";

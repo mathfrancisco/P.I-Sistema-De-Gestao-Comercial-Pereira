@@ -5,7 +5,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/types/user';
 import {UserFiltersInput} from "@/lib/validations/users";
 
 // ========================================

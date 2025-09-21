@@ -25,11 +25,11 @@ import { CustomerAnalyticsPanel } from '@/components/customers/CustomerAnalytics
 type ViewMode = 'list' | 'form' | 'profile';
 
 export default function ClientesPage() {
-    // Estados locais
+    // Estados locais - using undefined instead of null for TypeScript compatibility
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
-    const [editingCustomer, setEditingCustomer] = useState<CustomerResponse | null>(null);
-    const [viewingCustomer, setViewingCustomer] = useState<CustomerResponse | null>(null);
+    const [editingCustomer, setEditingCustomer] = useState<CustomerResponse | undefined>(undefined);
+    const [viewingCustomer, setViewingCustomer] = useState<CustomerResponse | undefined>(undefined);
     const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
     // Hooks principais
@@ -62,7 +62,7 @@ export default function ClientesPage() {
 
     // Handlers para navegação
     const handleCreateCustomer = () => {
-        setEditingCustomer(null);
+        setEditingCustomer(undefined);
         setFormMode('create');
         setViewMode('form');
     };
@@ -80,8 +80,8 @@ export default function ClientesPage() {
 
     const handleBackToList = () => {
         setViewMode('list');
-        setEditingCustomer(null);
-        setViewingCustomer(null);
+        setEditingCustomer(undefined);
+        setViewingCustomer(undefined);
         setSelectedCustomers([]);
     };
 
@@ -238,7 +238,7 @@ export default function ClientesPage() {
                     <div className="space-y-6">
                         {/* Profile Header */}
                         <CustomerProfileHeader
-                            customer={viewingCustomer as any} // Type assertion pois precisaria do CustomerWithStats
+                            customer={viewingCustomer as any} // Type assertion pois precisaria do CustomerWithStatistics
                             onEdit={() => handleEditCustomer(viewingCustomer)}
                             onNewSale={() => handleNewSale(viewingCustomer)}
                             onSendMessage={() => handleSendMessage(viewingCustomer)}

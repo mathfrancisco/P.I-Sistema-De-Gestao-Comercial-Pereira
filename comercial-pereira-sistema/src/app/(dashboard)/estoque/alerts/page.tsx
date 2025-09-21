@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +24,7 @@ import {
 
 import { InventoryAlert, UrgencyLevel } from '@/types/inventory';
 import {useInventoryAlerts} from "@/lib/hooks/useInventoryAlerts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function StockAlertsPage() {
     const { data: lowStockAlerts, refetch: refetchLow } = useInventoryAlerts('low-stock');
