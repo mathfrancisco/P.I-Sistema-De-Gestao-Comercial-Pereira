@@ -441,13 +441,13 @@ export const UserPermissionMatrix: React.FC<UserPermissionMatrixProps> = ({
                   options={[
                     { value: "", label: "Selecione um usuário" },
                     ...users.map((u) => ({
-                      value: u.userId,
+                      value: u.userId.toString(),
                       label: u.userName,
                     })),
                   ]}
-                  value={copyFromUserId || ""}
-                  onChange={(e) =>
-                    setCopyFromUserId(Number(e.target.value) || null)
+                  value={copyFromUserId?.toString() || ""}
+                  onValueChange={(value) =>
+                    setCopyFromUserId(Number(value) || null)
                   }
                   className="flex-1"
                 />
@@ -477,11 +477,12 @@ export const UserPermissionMatrix: React.FC<UserPermissionMatrixProps> = ({
                     { value: UserRole.SALESPERSON, label: "Template Vendedor" },
                   ]}
                   value={selectedTemplate}
-                  onChange={(e) =>
-                    setSelectedTemplate(e.target.value as UserRole)
+                  onValueChange={(value) =>
+                    setSelectedTemplate(value as UserRole)
                   }
                   className="flex-1"
                 />
+
                 <Button
                   size="sm"
                   variant="secondary"

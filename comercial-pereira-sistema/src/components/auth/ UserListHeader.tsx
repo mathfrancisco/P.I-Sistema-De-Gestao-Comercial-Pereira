@@ -126,15 +126,15 @@ export const UserListHeader: React.FC<UserListHeaderProps> = ({
                     placeholder="Filtrar por role"
                     options={roleOptions}
                     value={filters.role || ''}
-                    onChange={(e) => onFiltersChange({ role: e.target.value as UserRole || undefined })}
+                    onValueChange={(value) => onFiltersChange({ role: value as UserRole || undefined })}
                 />
 
                 <Select
                     placeholder="Filtrar por status"
                     options={statusOptions}
                     value={filters.isActive !== undefined ? String(filters.isActive) : ''}
-                    onChange={(e) => onFiltersChange({
-                        isActive: e.target.value ? e.target.value === 'true' : undefined
+                    onValueChange={(value) => onFiltersChange({
+                        isActive: value ? value === 'true' : undefined
                     })}
                 />
             </div>

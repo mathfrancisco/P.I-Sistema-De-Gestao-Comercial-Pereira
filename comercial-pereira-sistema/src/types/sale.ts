@@ -1,5 +1,6 @@
 // types/sale.ts
 import { Sale } from '@prisma/client'
+import { CustomerResponse } from './customer'
 
 // Enums
 export enum SaleStatus {
@@ -40,18 +41,12 @@ export interface SaleResponse extends SaleBase {
     name: string
     role: string
   }
-  customer: {
-    id: number
-    name: string
-    type: string
-    document?: string | null
-  }
+  customer: CustomerResponse  
   items?: SaleItemResponse[]
   _count?: {
     items: number
   }
 }
-
 // Item da venda
 export interface SaleItemResponse {
   id: number
