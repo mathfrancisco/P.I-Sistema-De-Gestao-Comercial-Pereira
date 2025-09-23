@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/utils';
 import { Button } from '@/components/ui/button';
-import type {  DiscountType } from '@/types/sale';
+import { DiscountType, type ShoppingCart as ShoppingCartType } from '@/types/sale'; 
 import type { CustomerResponse } from '@/types/customer';
+import { CustomerQuickSelect } from './CustomerQuickSelect';
+import { PaymentMethodSelector } from './PaymentMethodSelector';
 
 interface ShoppingCartProps {
-    cart: ShoppingCart;
+    cart: ShoppingCartType; // Fixed: use type instead of component
     selectedCustomer?: CustomerResponse | null;
     onUpdateItem: (productId: number, updates: { quantity?: number; discount?: number }) => void;
     onRemoveItem: (productId: number) => void;
@@ -33,18 +35,18 @@ interface ShoppingCartProps {
 }
 
 interface CartItemProps {
-    item: ShoppingCart['items'][0];
+    item: ShoppingCartType['items'][0]; // Fixed: use proper type
     onUpdateQuantity: (quantity: number) => void;
     onUpdateDiscount: (discount: number) => void;
     onRemove: () => void;
 }
 
 const CartItem: React.FC<CartItemProps> = ({
-                                               item,
-                                               onUpdateQuantity,
-                                               onUpdateDiscount,
-                                               onRemove
-                                           }) => {
+    item,
+    onUpdateQuantity,
+    onUpdateDiscount,
+    onRemove
+}) => {
     const [isEditingQuantity, setIsEditingQuantity] = useState(false);
     const [isEditingDiscount, setIsEditingDiscount] = useState(false);
     const [tempQuantity, setTempQuantity] = useState(item.quantity.toString());
@@ -131,8 +133,8 @@ const CartItem: React.FC<CartItemProps> = ({
                         </div>
 
                         <span className="text-xs text-gray-500">
-              / {item.availableStock} disp.
-            </span>
+                            / {item.availableStock} disp.
+                        </span>
 
                         {exceedsStock && (
                             <div className="flex items-center gap-1 text-xs text-red-600">
@@ -145,12 +147,12 @@ const CartItem: React.FC<CartItemProps> = ({
                     {/* Price and Discount */}
                     <div className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">
-                R$ {item.unitPrice.toFixed(2)} × {item.quantity}
-              </span>
+                            <span className="text-gray-600">
+                                R$ {item.unitPrice.toFixed(2)} × {item.quantity}
+                            </span>
                             <span className="font-medium">
-                R$ {(item.unitPrice * item.quantity).toFixed(2)}
-              </span>
+                                R$ {(item.unitPrice * item.quantity).toFixed(2)}
+                            </span>
                         </div>
 
                         {/* Discount Input */}
@@ -204,11 +206,11 @@ const CartItem: React.FC<CartItemProps> = ({
 };
 
 const CartSummary: React.FC<{
-    cart: ShoppingCart;
+    cart: ShoppingCartType; // Fixed: use proper type
     onDiscountApply: (type: DiscountType, value: number) => void;
     onTaxApply: (value: number) => void;
 }> = ({ cart, onDiscountApply, onTaxApply }) => {
-    const [discountType, setDiscountType] = useState<DiscountType>('FIXED');
+    const [discountType, setDiscountType] = useState<DiscountType>(DiscountType.FIXED); // Fixed: use enum value
     const [discountValue, setDiscountValue] = useState('');
     const [taxValue, setTaxValue] = useState('');
 
@@ -239,18 +241,18 @@ const CartSummary: React.FC<{
                         onChange={(e) => setDiscountType(e.target.value as DiscountType)}
                         className="text-xs border border-gray-200 rounded px-2 py-1"
                     >
-                        <option value="FIXED">R$</option>
-                        <option value="PERCENTAGE">%</option>
+                        <option value={DiscountType.FIXED}>R$</option>
+                        <option value={DiscountType.PERCENTAGE}>%</option>
                     </select>
                     <input
                         type="number"
                         value={discountValue}
                         onChange={(e) => setDiscountValue(e.target.value)}
-                        placeholder={discountType === 'PERCENTAGE' ? '10' : '50.00'}
+                        placeholder={discountType === DiscountType.PERCENTAGE ? '10' : '50.00'}
                         className="flex-1 text-xs border border-gray-200 rounded px-2 py-1"
-                        step={discountType === 'PERCENTAGE' ? '1' : '0.01'}
+                        step={discountType === DiscountType.PERCENTAGE ? '1' : '0.01'}
                         min="0"
-                        max={discountType === 'PERCENTAGE' ? '100' : cart.totals.subtotal}
+                        max={discountType === DiscountType.PERCENTAGE ? '100' : cart.totals.subtotal}
                     />
                     <Button
                         size="sm"
@@ -317,19 +319,19 @@ const CartSummary: React.FC<{
 };
 
 export const ShoppingCart: React.FC<ShoppingCartProps> = ({
-                                                              cart,
-                                                              selectedCustomer,
-                                                              onUpdateItem,
-                                                              onRemoveItem,
-                                                              onCustomerSelect,
-                                                              onCustomerClear,
-                                                              onDiscountApply,
-                                                              onTaxApply,
-                                                              onConfirmSale,
-                                                              onClearCart,
-                                                              isLoading = false,
-                                                              className
-                                                          }) => {
+    cart,
+    selectedCustomer,
+    onUpdateItem,
+    onRemoveItem,
+    onCustomerSelect,
+    onCustomerClear,
+    onDiscountApply,
+    onTaxApply,
+    onConfirmSale,
+    onClearCart,
+    isLoading = false,
+    className
+}) => {
     const [paymentMethod, setPaymentMethod] = useState<string>('');
     const [showPayment, setShowPayment] = useState(false);
 
