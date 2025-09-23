@@ -14,7 +14,13 @@ import {
 import { useInventoryStats } from '@/lib/hooks/useInventoryStats';
 import { useInventoryAlerts } from '@/lib/hooks/useInventoryAlerts';
 
-
+// Função para formatar moeda brasileira
+function formatCurrency(value: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
 
 export const StockDashboard = () => {
     const { data: stats, isLoading: statsLoading } = useInventoryStats();
@@ -29,6 +35,7 @@ export const StockDashboard = () => {
             icon: Package,
             color: 'text-blue-600',
             bgColor: 'bg-blue-100',
+            displayValue: (stats?.totalProducts || 0).toString()
         },
         {
             title: 'Out of Stock',
@@ -36,6 +43,7 @@ export const StockDashboard = () => {
             icon: AlertTriangle,
             color: 'text-red-600',
             bgColor: 'bg-red-100',
+            displayValue: (stats?.outOfStockCount || 0).toString()
         },
         {
             title: 'Low Stock',
@@ -43,13 +51,15 @@ export const StockDashboard = () => {
             icon: TrendingDown,
             color: 'text-yellow-600',
             bgColor: 'bg-yellow-100',
+            displayValue: (stats?.lowStockCount || 0).toString()
         },
         {
             title: 'Stock Value',
-            value: formatCurrency(stats?.totalValue || 0),
+            value: stats?.totalValue || 0,
             icon: DollarSign,
             color: 'text-green-600',
             bgColor: 'bg-green-100',
+            displayValue: formatCurrency(stats?.totalValue || 0)
         },
     ];
 
@@ -77,7 +87,7 @@ export const StockDashboard = () => {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-sm text-muted-foreground">{metric.title}</p>
-                                        <p className="text-2xl font-bold mt-2">{metric.value}</p>
+                                        <p className="text-2xl font-bold mt-2">{metric.displayValue}</p>
                                     </div>
                                     <div className={`p-3 rounded-lg ${metric.bgColor}`}>
                                         <Icon className={`h-6 w-6 ${metric.color}`} />
@@ -114,7 +124,3 @@ export const StockDashboard = () => {
         </div>
     );
 };
-
-function formatCurrency(arg0: number) {
-    throw new Error('Function not implemented.');
-}
