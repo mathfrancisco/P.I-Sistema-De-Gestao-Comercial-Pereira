@@ -13,7 +13,8 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Edit2, Save, X } from 'lucide-react';
 import { InventoryResponse } from '@/types/inventory';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils/formatDate';
+
 
 interface StockTableProps {
     inventory: InventoryResponse[];
@@ -69,6 +70,7 @@ export const StockTable: React.FC<StockTableProps> = ({
         setEditValue('');
     };
 
+    
     return (
         <Table>
             <TableHeader>

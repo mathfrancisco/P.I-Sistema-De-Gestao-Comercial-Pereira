@@ -860,7 +860,7 @@ export class CategoryService {
 
     const productsByCategory: Record<string, number> = {}
 
-    result.forEach((category) => {
+    result.forEach((category: { name: string | number; _count: { products: number } }) => {
       productsByCategory[category.name] = category._count.products
     })
 
@@ -893,7 +893,7 @@ export class CategoryService {
     })
 
     // For now, return with 0 revenue as we would need sales data
-    return categories.map((category) => ({
+    return categories.map((category: { id: any; name: any; _count: { products: any } }) => ({
       id: category.id,
       name: category.name,
       productCount: category._count.products,

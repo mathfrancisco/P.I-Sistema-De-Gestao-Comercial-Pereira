@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowUpCircle, ArrowDownCircle, RefreshCw, Clock, User } from 'lucide-react';
 import { MovementResponse, MovementType } from '@/types/inventory';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils/formatDate';
+
 
 interface StockMovementsListProps {
     movements: MovementResponse[];

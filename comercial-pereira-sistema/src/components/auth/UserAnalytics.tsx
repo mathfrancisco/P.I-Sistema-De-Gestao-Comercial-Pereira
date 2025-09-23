@@ -31,28 +31,28 @@ export const UserAnalyticsPanel: React.FC<UserAnalyticsPanelProps> = ({
     const cards = [
         {
             title: 'Total de Usuários',
-            value: statistics.total,
+            value: statistics.total || 0,
             icon: Users,
             color: 'text-blue-600',
             bgColor: 'bg-blue-100'
         },
         {
             title: 'Usuários Ativos',
-            value: statistics.active,
+            value: statistics.active || 0,
             icon: UserCheck,
             color: 'text-green-600',
             bgColor: 'bg-green-100'
         },
         {
             title: 'Usuários Inativos',
-            value: statistics.inactive,
+            value: statistics.inactive || 0,
             icon: UserX,
             color: 'text-red-600',
             bgColor: 'bg-red-100'
         },
         {
             title: 'Administradores',
-            value: statistics.byRole.ADMIN || 0,
+            value: statistics.byRole?.ADMIN || 0,
             icon: Crown,
             color: 'text-purple-600',
             bgColor: 'bg-purple-100'

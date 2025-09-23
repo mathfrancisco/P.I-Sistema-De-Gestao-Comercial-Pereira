@@ -11,8 +11,10 @@ import {
     FileText,
     BarChart3
 } from 'lucide-react';
-import { useInventoryStats, useInventoryAlerts } from '@/hooks/useInventory';
-import { formatCurrency } from '@/lib/utils';
+import { useInventoryStats } from '@/lib/hooks/useInventoryStats';
+import { useInventoryAlerts } from '@/lib/hooks/useInventoryAlerts';
+
+
 
 export const StockDashboard = () => {
     const { data: stats, isLoading: statsLoading } = useInventoryStats();
@@ -112,3 +114,7 @@ export const StockDashboard = () => {
         </div>
     );
 };
+
+function formatCurrency(arg0: number) {
+    throw new Error('Function not implemented.');
+}
