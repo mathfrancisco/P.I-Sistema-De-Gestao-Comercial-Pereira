@@ -1,390 +1,487 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import {
-  DollarSign,
-  Package,
-  Users,
-  ShoppingCart,
-  AlertCircle,
+    DollarSign, Package, Users, ShoppingCart, AlertCircle,
+    Calendar, RefreshCw, Activity, Zap, BarChart3,
 } from "lucide-react";
-import { DashboardMetricCard } from "@/components/dashboard/DashboardMetricCard";
 import { DashboardPromoCard } from "@/components/dashboard/DashboardPromoCard";
-import { SalesChart } from "@/components/dashboard/SalesChart";
-import { ProductPopularTable } from "@/components/dashboard/ProductPopularTable";
-import { SalesTargetBar } from "@/components/dashboard/SalesTargetBar";
 import { GeographicMapBrazil } from "@/components/dashboard/GeographicMapBrazil";
-import {
-  DashboardOverview,
-  SalesChartData,
-  ProductSaleMetric,
-} from "@/types/dashboard";
-import { toast } from "sonner";
+import { DashboardMetricCard } from "@/components/dashboard/DashboardMetricCard";
+import { SalesChart } from "@/components/dashboard/SalesChart";
+import { SalesTargetBar } from "@/components/dashboard/SalesTargetBar";
+import { ProductPopularTable } from "@/components/dashboard/ProductPopularTable";
+import { useDashboard, useDashboardFilters } from "@/hooks/useDashboard";
 
+// ============================================
+// COMPONENTE PRINCIPAL - DASHBOARD
+// ============================================
 export default function DashboardPage() {
-  // Estados para os dados
-  const [loading, setLoading] = useState(true);
-  const [overview, setOverview] = useState<DashboardOverview | null>(null);
-  const [salesChartData, setSalesChartData] = useState<SalesChartData[]>([]);
-  const [topProducts, setTopProducts] = useState<ProductSaleMetric[]>([]);
-  const [period, setPeriod] = useState<"day" | "week" | "month" | "year">(
-    "month"
-  );
-  const [chartPeriod, setChartPeriod] = useState<
-    "day" | "week" | "month" | "year"
-  >("week");
+    const { data: session } = useSession();
 
-  // Estados para vendas por estado (mock data por enquanto)
-  const [salesByState] = useState([
-    { state: "São Paulo", value: 45000, percentage: 35 },
-    { state: "Rio de Janeiro", value: 28000, percentage: 22 },
-    { state: "Minas Gerais", value: 20000, percentage: 15 },
-    { state: "Paraná", value: 18000, percentage: 14 },
-    { state: "Rio Grande do Sul", value: 14000, percentage: 11 },
-  ]);
+    // Estados para controle de filtros
+    const [chartPeriod, setChartPeriod] = useState<"day" | "week" | "month" | "year">("week");
 
-  // Fetch dashboard overview
-  const fetchDashboardOverview = async () => {
-    try {
-      const response = await fetch(`/api/dashboard/overview?period=${period}`);
-      if (!response.ok) throw new Error("Erro ao carregar dados");
+    // Hook de filtros
+    const { filters, updateFilter } = useDashboardFilters({
+        period: 'month',
+        includeComparison: true,
+        limit: 10
+    });
 
-      const data = await response.json();
-      setOverview(data.data);
-    } catch (error) {
-      console.error("Erro ao buscar overview:", error);
-      toast.error("Erro ao carregar dados do dashboard");
+    // Hook principal da dashboard
+    const {
+        // Dados
+        overview,
+        topProducts,
+        salesChart,
+        inventoryAlerts,
+
+        // Estados de loading
+        loading,
+        isRefreshing,
+        hasAnyError,
+        errors,
+        lastUpdated,
+
+        // Funções
+        refresh,
+        refreshSection,
+        clearErrors,
+        fetchSalesChart,
+        hasPermission,
+        getLoadingStatus
+    } = useDashboard(filters, true);
+
+    // ============================================
+    // HANDLERS
+    // ============================================
+
+    const handleRefresh = useCallback(async () => {
+        if (hasAnyError) {
+            clearErrors();
+        }
+        await refresh();
+    }, [refresh, hasAnyError, clearErrors]);
+
+    const handlePeriodChange = useCallback((newPeriod: typeof filters.period) => {
+        updateFilter('period', newPeriod);
+    }, [updateFilter]);
+
+    const handleChartPeriodChange = useCallback((newPeriod: typeof chartPeriod) => {
+        setChartPeriod(newPeriod);
+        // Refetch chart data with new period
+        fetchSalesChart({ period: newPeriod });
+    }, [fetchSalesChart]);
+
+    const handleExportChart = useCallback(() => {
+        console.log('Exportando dados do gráfico...', { salesChart, period: chartPeriod });
+        // Implementar exportação real aqui
+    }, [salesChart, chartPeriod]);
+
+    const handleProductClick = useCallback((productId: number) => {
+        console.log(`Navegando para produto ${productId}`);
+        // Implementar navegação para produto
+    }, []);
+
+    const handlePromoClick = useCallback(() => {
+        console.log('Promo clicked - opening insights page');
+        // Navegar para insights
+    }, []);
+
+    const handlePromoDismiss = useCallback(() => {
+        console.log('Promo dismissed');
+        // Salvar preferência de dismissal
+    }, []);
+
+    const handleStockReportClick = useCallback(() => {
+        console.log('Navegando para relatório de estoque');
+        // Implementar navegação
+    }, []);
+
+    // ============================================
+    // VERIFICAÇÕES DE PERMISSÃO
+    // ============================================
+
+    if (!session) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Carregando...</p>
+                </div>
+            </div>
+        );
     }
-  };
 
-  // Fetch sales chart data
-  const fetchSalesChart = async () => {
-    try {
-      const response = await fetch(
-        `/api/dashboard/charts/sales?period=${chartPeriod}&granularity=day`
-      );
-      if (!response.ok) throw new Error("Erro ao carregar gráfico");
-
-      const data = await response.json();
-      setSalesChartData(data.data || []);
-    } catch (error) {
-      console.error("Erro ao buscar gráfico:", error);
-      // Usar dados mock se a API falhar
-      setSalesChartData([
-        { date: "01/01", sales: 42, revenue: 12500, orders: 15 },
-        { date: "02/01", sales: 38, revenue: 11200, orders: 12 },
-        { date: "03/01", sales: 51, revenue: 15300, orders: 18 },
-        { date: "04/01", sales: 47, revenue: 14100, orders: 16 },
-        { date: "05/01", sales: 55, revenue: 16500, orders: 20 },
-        { date: "06/01", sales: 48, revenue: 14400, orders: 17 },
-        { date: "07/01", sales: 62, revenue: 18600, orders: 22 },
-      ]);
+    if (!hasPermission('dashboard:read')) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="text-center">
+                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Acesso Negado</h2>
+                    <p className="text-gray-600">Você não tem permissão para visualizar o dashboard.</p>
+                </div>
+            </div>
+        );
     }
-  };
 
-  // Fetch top products
-  const fetchTopProducts = async () => {
-    try {
-      const response = await fetch(
-        `/api/dashboard/products?period=${period}&limit=10`
-      );
-      if (!response.ok) throw new Error("Erro ao carregar produtos");
+    // ============================================
+    // DADOS COMPUTADOS
+    // ============================================
 
-      const data = await response.json();
-      setTopProducts(data.data || []);
-    } catch (error) {
-      console.error("Erro ao buscar produtos:", error);
-      // Usar dados mock se a API falhar
-      setTopProducts([
-        {
-          productId: 1,
-          productName: "Produto A",
-          productCode: "PA001",
-          categoryName: "Categoria 1",
-          totalQuantitySold: 150,
-          totalRevenue: 4500 as any,
-          salesCount: 45,
-          averageQuantityPerSale: 3.3,
-          lastSaleDate: new Date(),
-          trend: "UP",
-        },
-        {
-          productId: 2,
-          productName: "Produto B",
-          productCode: "PB002",
-          categoryName: "Categoria 2",
-          totalQuantitySold: 120,
-          totalRevenue: 3600 as any,
-          salesCount: 38,
-          averageQuantityPerSale: 3.2,
-          lastSaleDate: new Date(),
-          trend: "DOWN",
-        },
-        {
-          productId: 3,
-          productName: "Produto C",
-          productCode: "PC003",
-          categoryName: "Categoria 1",
-          totalQuantitySold: 95,
-          totalRevenue: 2850 as any,
-          salesCount: 30,
-          averageQuantityPerSale: 3.1,
-          lastSaleDate: new Date(),
-          trend: "STABLE",
-        },
-      ]);
-    }
-  };
-
-  // Carregar todos os dados
-  const loadDashboardData = async () => {
-    setLoading(true);
-    await Promise.all([
-      fetchDashboardOverview(),
-      fetchSalesChart(),
-      fetchTopProducts(),
-    ]);
-    setLoading(false);
-  };
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    loadDashboardData();
-  }, [period]);
-
-  // Recarregar gráfico quando mudar período
-  useEffect(() => {
-    fetchSalesChart();
-  }, [chartPeriod]);
-
-  // Handlers
-  const handlePeriodChange = (newPeriod: typeof period) => {
-    setPeriod(newPeriod);
-  };
-
-  const handleChartPeriodChange = (newPeriod: typeof chartPeriod) => {
-    setChartPeriod(newPeriod);
-  };
-
-  const handleExportChart = () => {
-    toast.success("Exportando dados do gráfico...");
-    // Implementar export real aqui
-  };
-
-  const handleProductClick = (productId: number) => {
-    // Navegar para página do produto
-    window.location.href = `/produtos/${productId}`;
-  };
-
-  const handlePromoClick = () => {
-    toast.info("Abrindo mais informações...");
-  };
-
-  const handlePromoDismiss = () => {
-    toast.success("Card promocional removido");
-  };
-
-  // Dados mockados ou default quando não há dados da API
-  const metricsData = overview
-    ? {
+    const metricsData = overview ? {
         totalRevenue: Number(overview.salesMetrics.month.total),
         revenueGrowth: overview.salesMetrics.month.growth,
         totalOrders: overview.salesMetrics.month.count,
-        ordersGrowth: 12,
+        ordersGrowth: 12, // Pode ser calculado dos dados da API
         totalCustomers: overview.customerMetrics.totalCustomers,
-        customersGrowth:
-          overview.customerMetrics.newCustomersThisMonth > 0 ? 8 : 0,
+        customersGrowth: overview.customerMetrics.newCustomersThisMonth > 0 ? 15 : -5,
         totalProducts: overview.productMetrics.totalProducts,
-        productsGrowth: -2,
-        salesTarget: 100000,
+        productsGrowth: overview.productMetrics.outOfStockCount > 0 ? -2 : 5,
+        salesTarget: 500000, // Pode vir da API
         currentSales: Number(overview.salesMetrics.month.total),
-      }
-    : {
-        totalRevenue: 81000,
-        revenueGrowth: 15,
-        totalOrders: 500,
-        ordersGrowth: 12,
-        totalCustomers: 5000,
-        customersGrowth: 8,
-        totalProducts: 231,
-        productsGrowth: -2,
-        salesTarget: 100000,
-        currentSales: 81000,
-      };
+        ticketMedio: Number(overview.salesMetrics.month.average)
+    } : null;
 
-  return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
-      {/* Header com filtros */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Bem-vindo ao sistema de gestão Comercial Pereira
-          </p>
-        </div>
+    const loadingStatus = getLoadingStatus();
 
-        {/* Seletor de período */}
-        <div className="flex items-center space-x-2">
-          <select
-            value={period}
-            onChange={(e) =>
-              handlePeriodChange(e.target.value as typeof period)
-            }
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="day">Hoje</option>
-            <option value="week">Esta Semana</option>
-            <option value="month">Este Mês</option>
-            <option value="year">Este Ano</option>
-          </select>
-        </div>
-      </div>
+    // Dados geográficos mock (até implementar API)
+    const salesByState = [
+        { state: 'SP', value: 45, percentage: 45 },
+        { state: 'RJ', value: 25, percentage: 25 },
+        { state: 'MG', value: 15, percentage: 15 },
+        { state: 'RS', value: 10, percentage: 10 },
+        { state: 'PR', value: 5, percentage: 5 }
+    ];
 
-      {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <DashboardMetricCard
-          label="Receita Total"
-          value={`R$ ${metricsData.totalRevenue.toLocaleString("pt-BR")}`}
-          change={metricsData.revenueGrowth}
-          trend={metricsData.revenueGrowth > 0 ? "UP" : "DOWN"}
-          icon={DollarSign}
-          color="text-blue-600"
-          bgColor="bg-blue-100"
-          loading={loading}
-          period="vs mês anterior"
-        />
+    // ============================================
+    // RENDER
+    // ============================================
 
-        <DashboardMetricCard
-          label="Total de Pedidos"
-          value={metricsData.totalOrders}
-          change={metricsData.ordersGrowth}
-          trend={metricsData.ordersGrowth > 0 ? "UP" : "DOWN"}
-          icon={ShoppingCart}
-          color="text-green-600"
-          bgColor="bg-green-100"
-          loading={loading}
-          period="vs mês anterior"
-        />
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <div className="max-w-7xl mx-auto p-6 space-y-6">
 
-        <DashboardMetricCard
-          label="Total de Clientes"
-          value={metricsData.totalCustomers}
-          change={metricsData.customersGrowth}
-          trend={metricsData.customersGrowth > 0 ? "UP" : "DOWN"}
-          icon={Users}
-          color="text-purple-600"
-          bgColor="bg-purple-100"
-          loading={loading}
-          period="vs mês anterior"
-        />
+                {/* Header da Dashboard */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                            <BarChart3 className="w-8 h-8 mr-3 text-blue-600" />
+                            Dashboard Executivo
+                        </h1>
+                        <p className="text-gray-600 mt-1 flex items-center">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {new Date().toLocaleDateString('pt-BR', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            })}
+                            {lastUpdated && (
+                                <span className="ml-4 text-sm text-gray-500">
+                                    Última atualização: {lastUpdated.toLocaleTimeString('pt-BR')}
+                                </span>
+                            )}
+                        </p>
+                    </div>
 
-        <DashboardMetricCard
-          label="Total de Produtos"
-          value={metricsData.totalProducts}
-          change={metricsData.productsGrowth}
-          trend={metricsData.productsGrowth > 0 ? "UP" : "DOWN"}
-          icon={Package}
-          color="text-orange-600"
-          bgColor="bg-orange-100"
-          loading={loading}
-          period="vs mês anterior"
-        />
-      </div>
+                    <div className="flex items-center space-x-3">
+                        {/* Indicador de loading geral */}
+                        {loadingStatus.percentage < 100 && (
+                            <div className="flex items-center text-blue-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                <span className="text-sm">
+                                    Carregando... {loadingStatus.percentage}%
+                                </span>
+                            </div>
+                        )}
 
-      {/* Linha com Gráfico de Vendas e Meta */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico de Vendas - ocupa 2 colunas */}
-        <div className="lg:col-span-2">
-          <SalesChart
-            data={salesChartData}
-            period={chartPeriod}
-            onPeriodChange={handleChartPeriodChange}
-            loading={loading}
-            showPreviousPeriod={true}
-            onExport={handleExportChart}
-          />
-        </div>
+                        {/* Indicador de erro */}
+                        {hasAnyError && (
+                            <div className="flex items-center text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                                <AlertCircle className="w-4 h-4 mr-2" />
+                                <span className="text-sm">Alguns dados falharam</span>
+                            </div>
+                        )}
 
-        {/* Meta de Vendas - 1 coluna */}
-        <div className="space-y-4">
-          <SalesTargetBar
-            current={metricsData.currentSales}
-            target={metricsData.salesTarget}
-            label="Meta de Vendas"
-            period="Mensal"
-            loading={loading}
-          />
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+                        </button>
 
-          {/* Adicionar cards de resumo */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Resumo Rápido
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Ticket Médio</span>
-                <span className="text-sm font-semibold text-gray-900">
-                  R${" "}
-                  {overview
-                    ? Number(overview.salesMetrics.month.average).toFixed(2)
-                    : "162,00"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Produtos em Falta</span>
-                <span className="text-sm font-semibold text-red-600">
-                  {overview?.productMetrics.outOfStockCount || 3}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Estoque Baixo</span>
-                <span className="text-sm font-semibold text-yellow-600">
-                  {overview?.productMetrics.lowStockCount || 7}
-                </span>
-              </div>
+                        <select
+                            value={filters.period}
+                            onChange={(e) => handlePeriodChange(e.target.value as typeof filters.period)}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                        >
+                            <option value="today">Hoje</option>
+                            <option value="week">Esta Semana</option>
+                            <option value="month">Este Mês</option>
+                            <option value="year">Este Ano</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Cards de Métricas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <DashboardMetricCard
+                        label="Receita Total"
+                        value={metricsData ? `R$ ${metricsData.totalRevenue.toLocaleString("pt-BR")}` : '-'}
+                        change={metricsData?.revenueGrowth}
+                        trend={metricsData && metricsData.revenueGrowth > 0 ? "UP" : "DOWN"}
+                        icon={DollarSign}
+                        color="text-blue-600"
+                        bgColor="bg-blue-100"
+                        borderColor="border-blue-200"
+                        loading={loading.overview}
+                        period="vs período anterior"
+                        error={errors.overview}
+                        onRetry={() => refreshSection('overview')}
+                    />
+
+                    <DashboardMetricCard
+                        label="Total de Pedidos"
+                        value={metricsData?.totalOrders || '-'}
+                        change={metricsData?.ordersGrowth}
+                        trend={metricsData && metricsData.ordersGrowth > 0 ? "UP" : "DOWN"}
+                        icon={ShoppingCart}
+                        color="text-green-600"
+                        bgColor="bg-green-100"
+                        borderColor="border-green-200"
+                        loading={loading.overview}
+                        period="vs período anterior"
+                        error={errors.overview}
+                        onRetry={() => refreshSection('overview')}
+                    />
+
+                    <DashboardMetricCard
+                        label="Total de Clientes"
+                        value={metricsData?.totalCustomers || '-'}
+                        change={metricsData?.customersGrowth}
+                        trend={metricsData && metricsData.customersGrowth > 0 ? "UP" : "DOWN"}
+                        icon={Users}
+                        color="text-purple-600"
+                        bgColor="bg-purple-100"
+                        borderColor="border-purple-200"
+                        loading={loading.overview}
+                        period="vs período anterior"
+                        error={errors.overview}
+                        onRetry={() => refreshSection('overview')}
+                    />
+
+                    <DashboardMetricCard
+                        label="Total de Produtos"
+                        value={metricsData?.totalProducts || '-'}
+                        change={metricsData?.productsGrowth}
+                        trend={metricsData && metricsData.productsGrowth > 0 ? "UP" : "DOWN"}
+                        icon={Package}
+                        color="text-orange-600"
+                        bgColor="bg-orange-100"
+                        borderColor="border-orange-200"
+                        loading={loading.overview}
+                        period="vs período anterior"
+                        error={errors.overview}
+                        onRetry={() => refreshSection('overview')}
+                    />
+                </div>
+
+                {/* Gráfico de Vendas e Meta */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <SalesChart
+                            data={salesChart}
+                            period={chartPeriod}
+                            onPeriodChange={handleChartPeriodChange}
+                            loading={loading.salesChart}
+                            showPreviousPeriod={true}
+                            onExport={handleExportChart}
+                            error={errors.salesChart}
+                            onRetry={() => refreshSection('salesChart')}
+                        />
+                    </div>
+
+                    <div className="space-y-6">
+                        <SalesTargetBar
+                            current={metricsData?.currentSales || 0}
+                            target={metricsData?.salesTarget || 500000}
+                            label="Meta de Vendas"
+                            period="Mensal"
+                            loading={loading.overview}
+                        />
+
+                        {/* Resumo Executivo */}
+                        <div className="bg-white rounded-xl border border-gray-200 p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <Activity className="w-5 h-5 mr-2 text-blue-600" />
+                                Resumo Executivo
+                            </h3>
+
+                            {loading.overview ? (
+                                <div className="space-y-4">
+                                    <div className="animate-pulse space-y-2">
+                                        <div className="bg-gray-200 rounded h-4 w-full"></div>
+                                        <div className="bg-gray-200 rounded h-4 w-3/4"></div>
+                                        <div className="bg-gray-200 rounded h-4 w-1/2"></div>
+                                    </div>
+                                </div>
+                            ) : errors.overview ? (
+                                <div className="text-center py-4">
+                                    <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                                    <p className="text-red-600 text-sm">Erro ao carregar resumo</p>
+                                    <button
+                                        onClick={() => refreshSection('overview')}
+                                        className="mt-2 text-blue-600 hover:text-blue-700 text-sm underline"
+                                    >
+                                        Tentar novamente
+                                    </button>
+                                </div>
+                            ) : overview ? (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Ticket Médio</span>
+                                        <span className="text-sm font-semibold text-gray-900">
+                                            R$ {metricsData?.ticketMedio.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Produtos em Falta</span>
+                                        <span className="text-sm font-semibold text-red-600">
+                                            {overview.productMetrics.outOfStockCount}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Estoque Baixo</span>
+                                        <span className="text-sm font-semibold text-yellow-600">
+                                            {overview.productMetrics.lowStockCount}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Novos Clientes</span>
+                                        <span className="text-sm font-semibold text-green-600">
+                                            {overview.customerMetrics.newCustomersThisMonth}
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-6 pt-4 border-t border-gray-200">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-600">Status Geral</span>
+                                            <div className="flex items-center">
+                                                <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                                                <span className="font-medium text-green-600">
+                                                    {overview.productMetrics.outOfStockCount === 0 ? 'Excelente' : 'Atenção'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-4">
+                                    <p className="text-gray-500">Dados não disponíveis</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Produtos Populares e Mapa Geográfico */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <ProductPopularTable
+                        products={topProducts}
+                        loading={loading.products}
+                        onProductClick={handleProductClick}
+                        error={errors.products}
+                        onRetry={() => refreshSection('products')}
+                    />
+
+                    <GeographicMapBrazil
+                        salesByState={salesByState}
+                        loading={false} // Mock data
+                    />
+                </div>
+
+                {/* Card Promocional */}
+                <DashboardPromoCard
+                    title="Impulsione suas vendas com Insights Avançados"
+                    description="Descubra padrões de comportamento, identifique oportunidades de cross-sell e otimize sua estratégia comercial com nossa nova suite de analytics."
+                    ctaText="Explorar Insights"
+                    onCtaClick={handlePromoClick}
+                    onDismiss={handlePromoDismiss}
+                    gradient="from-indigo-600 via-purple-600 to-blue-600"
+                    icon={Zap}
+                />
+
+                {/* Seção de Alertas - Apenas se houver dados */}
+                {overview && (overview.productMetrics.outOfStockCount > 0 || overview.productMetrics.lowStockCount > 0) && (
+                    <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-6">
+                        <div className="flex items-start space-x-4">
+                            <div className="flex-shrink-0">
+                                <AlertCircle className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-red-900 mb-2">
+                                    Atenção: Alertas de Estoque
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    {overview.productMetrics.outOfStockCount > 0 && (
+                                        <div className="flex items-center text-red-700">
+                                            <div className="w-2 h-2 bg-red-500 rounded-full mr-3"></div>
+                                            <span>
+                                                <strong>{overview.productMetrics.outOfStockCount}</strong> produtos em falta
+                                            </span>
+                                        </div>
+                                    )}
+                                    {overview.productMetrics.lowStockCount > 0 && (
+                                        <div className="flex items-center text-orange-700">
+                                            <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
+                                            <span>
+                                                <strong>{overview.productMetrics.lowStockCount}</strong> produtos com estoque baixo
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-4">
+                                    <button
+                                        onClick={handleStockReportClick}
+                                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                                    >
+                                        Ver Relatório de Estoque
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Estado de erro global */}
+                {hasAnyError && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                        <div className="flex items-center">
+                            <AlertCircle className="w-6 h-6 text-yellow-600 mr-3" />
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-yellow-900 mb-1">
+                                    Alguns dados não puderam ser carregados
+                                </h3>
+                                <p className="text-yellow-700 text-sm">
+                                    Verifique sua conexão e tente atualizar os dados.
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleRefresh}
+                                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
+                            >
+                                Tentar Novamente
+                            </button>
+                        </div>
+                    </div>
+                )}
+
             </div>
-          </div>
         </div>
-      </div>
-
-      {/* Produtos Populares e Mapa */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tabela de Produtos Populares */}
-        <ProductPopularTable
-          products={topProducts}
-          loading={loading}
-          onProductClick={handleProductClick}
-        />
-
-        {/* Mapa Geográfico */}
-        <GeographicMapBrazil salesByState={salesByState} loading={loading} />
-      </div>
-
-      {/* Card Promocional */}
-      <DashboardPromoCard
-        title="Aumente suas vendas em 30%"
-        description="Descubra insights poderosos sobre seu negócio e tome decisões baseadas em dados reais para impulsionar suas vendas."
-        ctaText="Saiba Mais"
-        onCtaClick={handlePromoClick}
-        onDismiss={handlePromoDismiss}
-        gradient="from-blue-600 to-indigo-700"
-      />
-
-      {/* Seção de Alertas (opcional) */}
-      {(overview?.productMetrics.outOfStockCount ?? 0) > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start space-x-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-semibold text-red-900">
-              Atenção: {overview?.productMetrics.outOfStockCount ?? 0} produtos
-              em falta
-            </h3>
-            <p className="text-sm text-red-700 mt-1">
-              Verifique o estoque e faça pedidos de reposição o quanto antes.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
 }

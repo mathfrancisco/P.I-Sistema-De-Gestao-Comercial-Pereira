@@ -17,7 +17,6 @@ import {
 import { cn } from '@/lib/utils/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCustomers } from '@/lib/hooks/useCustomers';
 import type { CustomerResponse, CustomerType } from '@/types/customer';
 
 interface CustomerQuickSelectProps {
