@@ -1,16 +1,46 @@
-// hooks/useProducts.ts
-import { useState, useCallback } from 'react';
+// lib/hooks/useProducts.ts - VERSÃO FINAL CORRIGIDA PARA SUA API
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
-    ProductResponse,
     ProductFilters,
     CreateProductRequest,
     UpdateProductRequest,
-    ProductsListResponse,
-    ProductSelectOption
+    BulkImportRequest,
 } from '@/types/product';
 
-// API functions baseadas nas rotas reais
+// Função para normalizar filtros
+const normalizeFilters = (filters: ProductFilters): ProductFilters => {
+    const normalized: ProductFilters = {};
+
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+            if (typeof value === 'boolean') {
+                normalized[key as keyof ProductFilters] = value;
+            } else if (typeof value === 'number') {
+                normalized[key as keyof ProductFilters] = value;
+            } else if (typeof value === 'string' && value.trim() !== '') {
+                normalized[key as keyof ProductFilters] = value.trim();
+            } else if (value instanceof Date) {
+                normalized[key as keyof ProductFilters] = value;
+            }
+        }
+    });
+
+    return normalized;
+};
+
+// Função para gerar query key estável
+const createQueryKey = (filters: ProductFilters): (string | number)[] => {
+    const normalized = normalizeFilters(filters);
+
+    const sortedEntries = Object.entries(normalized)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}:${value}`);
+
+    return ['products', ...sortedEntries];
+};
+
+// API functions
 const fetchAPI = async (url: string, options?: RequestInit) => {
     const response = await fetch(url, {
         headers: {
@@ -29,137 +59,177 @@ const fetchAPI = async (url: string, options?: RequestInit) => {
 };
 
 const ProductAPI = {
-    // GET /api/products - Listar produtos com filtros
     async getProducts(filters: ProductFilters = {}) {
         const params = new URLSearchParams();
-        Object.entries(filters).forEach(([key, value]) => {
+
+        const normalizedFilters = normalizeFilters(filters);
+
+        Object.entries(normalizedFilters).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
-                params.append(key, String(value));
+                if (typeof value === 'boolean') {
+                    params.append(key, value.toString());
+                } else {
+                    params.append(key, String(value));
+                }
             }
         });
 
         const result = await fetchAPI(`/api/products?${params}`);
-        return result as { success: boolean } & ProductsListResponse;
+        return result;
     },
 
-    // GET /api/products/[id] - Buscar produto por ID
     async getProductById(id: number, includeStats = false) {
         const params = includeStats ? '?includeStats=true' : '';
         const result = await fetchAPI(`/api/products/${id}${params}`);
-        return result as { success: boolean; data: ProductResponse };
+        return result;
     },
 
-    // POST /api/products - Criar produto
     async createProduct(data: CreateProductRequest) {
         const result = await fetchAPI('/api/products', {
             method: 'POST',
             body: JSON.stringify(data),
         });
-        return result as { success: boolean; data: ProductResponse; message: string };
+        return result;
     },
 
-    // PUT /api/products/[id] - Atualizar produto
     async updateProduct(id: number, data: UpdateProductRequest) {
         const result = await fetchAPI(`/api/products/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         });
-        return result as { success: boolean; data: ProductResponse; message: string };
+        return result;
     },
 
-    // DELETE /api/products/[id] - Excluir produto
     async deleteProduct(id: number, reason?: string) {
         const params = reason ? `?reason=${encodeURIComponent(reason)}` : '';
         const result = await fetchAPI(`/api/products/${id}${params}`, {
             method: 'DELETE',
         });
-        return result as { success: boolean; message: string };
+        return result;
     },
 
-    // GET /api/products/search - Buscar produtos
-    async searchProducts(query: string, categoryId?: number, limit = 10, includeInactive = false, withStock = false) {
+    async searchProducts(
+        query: string,
+        categoryId?: number,
+        limit = 10,
+        includeInactive = false,
+        withStock = false
+    ) {
         const params = new URLSearchParams({
             q: query,
-            limit: String(limit),
-            includeInactive: String(includeInactive),
-            withStock: String(withStock)
+            limit: limit.toString(),
+            includeInactive: includeInactive.toString(),
+            withStock: withStock.toString()
         });
-        if (categoryId) params.append('categoryId', String(categoryId));
+
+        if (categoryId) {
+            params.append('categoryId', categoryId.toString());
+        }
 
         const result = await fetchAPI(`/api/products/search?${params}`);
-        return result as { success: boolean; data: ProductResponse[] };
+        return result;
     },
 
-    // POST /api/products/check-code - Verificar disponibilidade do código
+    async getProductByCode(code: string) {
+        const result = await fetchAPI(`/api/products/code/${encodeURIComponent(code)}`);
+        return result;
+    },
+
     async checkCodeAvailability(code: string, excludeId?: number) {
         const result = await fetchAPI('/api/products/check-code', {
             method: 'POST',
             body: JSON.stringify({ code, excludeId }),
         });
-        return result as { success: boolean; data: { available: boolean } };
+        return result;
     },
 
-    // GET /api/products/code/[code] - Buscar produto por código
-    async getProductByCode(code: string) {
-        const result = await fetchAPI(`/api/products/code/${encodeURIComponent(code)}`);
-        return result as { success: boolean; data: ProductResponse };
-    },
-
-    // GET /api/products/active - Buscar produtos ativos
     async getActiveProducts() {
         const result = await fetchAPI('/api/products/active');
-        return result as { success: boolean; data: ProductResponse[] };
+        return result;
     },
 
-    // GET /api/products/category/[categoryId] - Buscar produtos por categoria
     async getProductsByCategory(categoryId: number) {
-        const result = await fetchAPI(`/api/products/category/${categoryId}`);
-        return result as { success: boolean; data: ProductResponse[] };
+        const result = await fetchAPI(`/api/categories/${categoryId}/products`);
+        return result;
     },
 
-    // GET /api/products/select - Buscar produtos para seleção
     async getProductsForSelect(categoryId?: number, withStock = false) {
         const params = new URLSearchParams({ withStock: String(withStock) });
         if (categoryId) params.append('categoryId', String(categoryId));
 
         const result = await fetchAPI(`/api/products/select?${params}`);
-        return result as { success: boolean; data: ProductSelectOption[] };
+        return result;
     },
 
-    // GET /api/products/statistics - Obter estatísticas
-    async getStatistics() {
+    async getProductStatistics() {
         const result = await fetchAPI('/api/products/statistics');
-        return result as { success: boolean; data: any };
+        return result;
     },
 
-    // POST /api/products/bulk-import - Importação em lote
-    async bulkImport(data: { products: CreateProductRequest[] }) {
+    async bulkImport(data: BulkImportRequest) {
         const result = await fetchAPI('/api/products/bulk-import', {
             method: 'POST',
             body: JSON.stringify(data),
         });
-        return result as { success: boolean; data: { success: number; errors: string[] }; message: string };
+        return result;
     }
 };
 
-// Hook principal para listagem de produtos
+// Hook principal para listagem de produtos - VERSÃO CORRIGIDA PARA SUA API
 export const useProducts = (initialFilters: ProductFilters = {}) => {
-    const [filters, setFilters] = useState<ProductFilters>({
+    const defaultFilters = useMemo(() => ({
         page: 1,
         limit: 20,
-        sortBy: 'name',
-        sortOrder: 'asc',
-        ...initialFilters,
+        sortBy: 'name' as const,
+        sortOrder: 'asc' as const
+    }), []);
+
+    const [filters, setFilters] = useState<ProductFilters>(() => {
+        const merged = { ...defaultFilters, ...normalizeFilters(initialFilters) };
+        return merged;
     });
 
+    const previousFiltersRef = useRef<ProductFilters>(filters);
+    const stableFilters = useMemo(() => {
+        const normalized = normalizeFilters(filters);
+
+        const hasChanged = JSON.stringify(previousFiltersRef.current) !== JSON.stringify(normalized);
+
+        if (hasChanged) {
+            previousFiltersRef.current = normalized;
+            return normalized;
+        }
+
+        return previousFiltersRef.current;
+    }, [filters]);
+
+    const queryKey = useMemo(() => {
+        return createQueryKey(stableFilters);
+    }, [stableFilters]);
+
     const query = useQuery({
-        queryKey: ['products', filters],
-        queryFn: () => ProductAPI.getProducts(filters),
+        queryKey,
+        queryFn: () => ProductAPI.getProducts(stableFilters),
         staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+        retry: 1,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        refetchInterval: false,
     });
 
     const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {
-        setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
+        setFilters(prev => {
+            const updated = { ...prev, ...newFilters };
+
+            const hasNonPageChanges = Object.keys(newFilters).some(key => key !== 'page');
+            if (hasNonPageChanges) {
+                updated.page = 1;
+            }
+
+            return updated;
+        });
     }, []);
 
     const changePage = useCallback((page: number) => {
@@ -170,32 +240,72 @@ export const useProducts = (initialFilters: ProductFilters = {}) => {
         setFilters(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
     }, []);
 
+    const clearFilters = useCallback(() => {
+        setFilters(defaultFilters);
+    }, [defaultFilters]);
+
+    const refresh = useCallback(() => {
+        query.refetch();
+    }, [query]);
+
+    // CORREÇÃO CRÍTICA: Lidar com duplo aninhamento da sua API
+    const products = useMemo(() => {
+        // Sua API retorna: { data: { data: [...] } }
+        const responseData = query.data?.data?.data;
+        if (Array.isArray(responseData)) {
+            return responseData;
+        }
+        return [];
+    }, [query.data]);
+
+    const pagination = useMemo(() => {
+        // Sua API retorna: { data: { pagination: {...} } }
+        return query.data?.data?.pagination || null;
+    }, [query.data]);
+
+    const summary = useMemo(() => {
+        // Sua API retorna: { data: { summary: {...} } }
+        return query.data?.data?.summary || null;
+    }, [query.data]);
+
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🔄 Products Filters changed:', stableFilters);
+        }
+    }, [stableFilters]);
+
     return {
-        ...query,
-        filters,
+        isLoading: query.isLoading,
+        isError: query.isError,
+        error: query.error,
+        isSuccess: query.isSuccess,
+        loading: query.isLoading,
+        products,
+        pagination,
+        summary,
+        filters: stableFilters,
         updateFilters,
         changePage,
         changeSort,
-        products: query.data?.data || [],
-        pagination: query.data?.pagination,
-        summary: query.data?.summary,
+        clearFilters,
+        refresh,
+        refetch: query.refetch,
     };
 };
 
-// Hook para produto individual
-export const useProduct = (id: number | null, includeStats = false) => {
+// Demais hooks permanecem iguais...
+export const useProduct = (id: number | null, includeStats: boolean = false) => {
     return useQuery({
         queryKey: ['product', id, includeStats],
         queryFn: () => id ? ProductAPI.getProductById(id, includeStats) : null,
-        enabled: !!id,
+        enabled: !!id && id > 0,
         staleTime: 10 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
     });
 };
 
-// Hook para criar produto
 export const useCreateProduct = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ProductAPI.createProduct,
         onSuccess: () => {
@@ -204,24 +314,20 @@ export const useCreateProduct = () => {
     });
 };
 
-// Hook para atualizar produto
 export const useUpdateProduct = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ({ id, data }: { id: number; data: UpdateProductRequest }) =>
             ProductAPI.updateProduct(id, data),
-        onSuccess: (_: any, {id}: any) => {
+        onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['product', id] });
         },
     });
 };
 
-// Hook para excluir produto
 export const useDeleteProduct = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
             ProductAPI.deleteProduct(id, reason),
@@ -231,7 +337,17 @@ export const useDeleteProduct = () => {
     });
 };
 
-// Hook para busca de produtos
+export const useBulkImport = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ProductAPI.bulkImport,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+        },
+    });
+};
+
+// Outros hooks...
 export const useSearchProducts = () => {
     return useMutation({
         mutationFn: ({ query, categoryId, limit, includeInactive, withStock }: {
@@ -244,7 +360,6 @@ export const useSearchProducts = () => {
     });
 };
 
-// Hook para verificar código
 export const useCheckCode = () => {
     return useMutation({
         mutationFn: ({ code, excludeId }: { code: string; excludeId?: number }) =>
@@ -252,61 +367,39 @@ export const useCheckCode = () => {
     });
 };
 
-// Hook para produto por código
-export const useProductByCode = (code: string | null) => {
-    return useQuery({
-        queryKey: ['product-by-code', code],
-        queryFn: () => code ? ProductAPI.getProductByCode(code) : null,
-        enabled: !!code,
-        staleTime: 10 * 60 * 1000,
-    });
-};
-
-// Hook para produtos ativos
 export const useActiveProducts = () => {
     return useQuery({
         queryKey: ['products', 'active'],
         queryFn: () => ProductAPI.getActiveProducts(),
         staleTime: 15 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
     });
 };
 
-// Hook para produtos por categoria
 export const useProductsByCategory = (categoryId: number | null) => {
     return useQuery({
         queryKey: ['products', 'category', categoryId],
         queryFn: () => categoryId ? ProductAPI.getProductsByCategory(categoryId) : null,
-        enabled: !!categoryId,
+        enabled: !!categoryId && categoryId > 0,
         staleTime: 15 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
     });
 };
 
-// Hook para produtos para seleção
 export const useProductsForSelect = (categoryId?: number, withStock = false) => {
     return useQuery({
         queryKey: ['products', 'select', categoryId, withStock],
         queryFn: () => ProductAPI.getProductsForSelect(categoryId, withStock),
         staleTime: 10 * 60 * 1000,
+        gcTime: 20 * 60 * 1000,
     });
 };
 
-// Hook para estatísticas
 export const useProductStatistics = () => {
     return useQuery({
         queryKey: ['products', 'statistics'],
-        queryFn: () => ProductAPI.getStatistics(),
+        queryFn: () => ProductAPI.getProductStatistics(),
         staleTime: 30 * 60 * 1000,
-    });
-};
-
-// Hook para importação em lote
-export const useBulkImport = () => {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: ProductAPI.bulkImport,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-        },
+        gcTime: 60 * 60 * 1000,
     });
 };

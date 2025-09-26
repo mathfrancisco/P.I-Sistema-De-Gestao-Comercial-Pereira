@@ -30,6 +30,7 @@ import {
     SaleStatus
 } from '@/types/sale';
 import type { SaleResponse, SaleFilters } from '@/types/sale';
+import {Sidebar} from "@/components/layout/sidebar";
 
 interface SalesListHeaderProps {
     onNewSale: () => void;
@@ -57,6 +58,14 @@ const SalesListHeader: React.FC<SalesListHeaderProps> = ({
                                                          }) => {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+    const toggleSidebar = () => {
+        setSidebarCollapsed(!sidebarCollapsed)
+    }
+    const handleNavigation = (href: string) => {
+        console.log('Navegando para:', href)
+        // Implementar navegação
+    }
 
     React.useEffect(() => {
         const timer = setTimeout(() => {
@@ -70,6 +79,13 @@ const SalesListHeader: React.FC<SalesListHeaderProps> = ({
 
     return (
         <div className="space-y-4">
+
+            <Sidebar
+                isCollapsed={sidebarCollapsed}
+                onToggle={toggleSidebar}
+                activeItem="/dashboard"
+                onItemClick={handleNavigation}
+            />
             {/* Header Principal */}
             <div className="flex items-center justify-between">
                 <div>

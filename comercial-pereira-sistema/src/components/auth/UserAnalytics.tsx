@@ -26,7 +26,7 @@ interface UserAnalyticsPanelProps {
     onFilterChange?: (filter: string) => void;
 }
 
-export const ImprovedUserAnalyticsPanel: React.FC<UserAnalyticsPanelProps> = ({
+export const UserAnalyticsPanel: React.FC<UserAnalyticsPanelProps> = ({
                                                                                   statistics,
                                                                                   loading = false,
                                                                                   onRefresh,

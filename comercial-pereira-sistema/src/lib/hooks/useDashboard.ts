@@ -1,530 +1,497 @@
-import React, { useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Decimal } from '@prisma/client/runtime/library'
+// hooks/useDashboard.ts
+import { useState, useEffect, useCallback } from 'react'
 import {
     DashboardOverview,
+    DashboardFilters,
     ProductSaleMetric,
-    SalesChartData,
-    CategorySalesMetric,
-    InventoryAlert,
     UserSalesMetric,
-    DashboardResponse,
-    DashboardFilters
+    CategorySalesMetric,
+    CustomerMetric,
+    InventoryAlert,
+    SalesChartData,
+    CategoryChartData,
+    DashboardResponse
 } from '@/types/dashboard'
 
-// =================== QUERY KEYS ===================
+// =================== INTERFACES PRINCIPAIS ===================
 
-export const dashboardKeys = {
-    all: ['dashboard'] as const,
-    overview: (filters: DashboardFilters) => ['dashboard', 'overview', filters] as const,
-    products: (filters: DashboardFilters) => ['dashboard', 'products', filters] as const,
-    salesChart: (filters: DashboardFilters) => ['dashboard', 'sales-chart', filters] as const,
-    categoryChart: (filters: DashboardFilters) => ['dashboard', 'category-chart', filters] as const,
-    alerts: (filters: any) => ['dashboard', 'alerts', filters] as const,
-    userPerformance: (filters: DashboardFilters) => ['dashboard', 'users', filters] as const,
-} as const
+interface UseDashboardReturn {
+    // Dados principais
+    overview: DashboardOverview | null
+    topProducts: ProductSaleMetric[]
+    userPerformance: UserSalesMetric[]
+    categoryMetrics: CategorySalesMetric[]
+    topCustomers: CustomerMetric[]
+    inventoryAlerts: InventoryAlert[]
+    salesChartData: SalesChartData[]
+    categoryChartData: CategoryChartData[]
 
-// =================== API FUNCTIONS ===================
-
-const API_ENDPOINTS = {
-    overview: '/api/dashboard/overview',
-    products: '/api/dashboard/products',
-    salesChart: '/api/dashboard/charts/sales',
-    categoryChart: '/api/dashboard/charts/categories',
-    alerts: '/api/dashboard/alerts',
-    userPerformance: '/api/dashboard/users'
-} as const
-
-async function fetchWithAuth<T>(url: string, params: Record<string, any> = {}): Promise<T> {
-    const searchParams = new URLSearchParams()
-    Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-            searchParams.append(key, value.toString())
-        }
-    })
-
-    const response = await fetch(`${url}?${searchParams.toString()}`, {
-        headers: { 'Content-Type': 'application/json' }
-    })
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
-        throw new Error(errorData.error || `Erro ${response.status}`)
+    // Estados de controle
+    loading: boolean
+    error: string | null
+    loadingStates: {
+        overview: boolean
+        topProducts: boolean
+        userPerformance: boolean
+        categoryMetrics: boolean
+        inventoryAlerts: boolean
+        charts: boolean
     }
 
-    const data: DashboardResponse<T> = await response.json()
-    return data.data
+    // Metadados
+    metadata: {
+        lastUpdate: Date | null
+        cached: boolean
+        cacheExpiry: Date | null
+        queryTime: number
+    }
+
+    // Funções de ação
+    refresh: () => Promise<void>
+    refreshOverview: () => Promise<DashboardOverview | null>
+    refreshTopProducts: (limit?: number) => Promise<ProductSaleMetric[]>
+    refreshUserPerformance: (userId?: number) => Promise<UserSalesMetric[]>
+    refreshCategoryMetrics: (categoryId?: number) => Promise<CategorySalesMetric[]>
+    refreshInventoryAlerts: (urgencyLevel?: string) => Promise<InventoryAlert[]>
+    refreshCharts: () => Promise<{ sales: SalesChartData[], categories: CategoryChartData[] }>
+
+    // Filtros
+    updateFilters: (newFilters: Partial<DashboardFilters>) => void
+    resetFilters: () => void
+    setDateRange: (dateFrom: Date, dateTo: Date) => void
+    setPeriod: (period: DashboardFilters['period']) => void
 }
 
-// Query functions
-const fetchOverview = (filters: DashboardFilters) =>
-    fetchWithAuth<DashboardOverview>(API_ENDPOINTS.overview, filters)
+interface UseDashboardOptions {
+    autoRefresh?: boolean
+    refreshInterval?: number // em ms
+    enableCache?: boolean
+    initialFilters?: Partial<DashboardFilters>
+}
 
-const fetchTopProducts = (filters: DashboardFilters) =>
-    fetchWithAuth<ProductSaleMetric[]>(API_ENDPOINTS.products, filters)
-
-const fetchSalesChart = (filters: DashboardFilters & { granularity?: string }) =>
-    fetchWithAuth<SalesChartData[]>(API_ENDPOINTS.salesChart, { ...filters, granularity: 'day' })
-
-const fetchCategoryChart = (filters: DashboardFilters & { topN?: number }) =>
-    fetchWithAuth<CategorySalesMetric[]>(API_ENDPOINTS.categoryChart, { ...filters, topN: 10 })
-
-const fetchInventoryAlerts = (filters: { types?: string[], priority?: string }) =>
-    fetchWithAuth<InventoryAlert[]>(API_ENDPOINTS.alerts, {
-        types: filters.types || ['LOW_STOCK', 'OUT_OF_STOCK'],
-        priority: filters.priority || 'ALL',
-        limit: 20
-    })
-
-const fetchUserPerformance = (filters: DashboardFilters) =>
-    fetchWithAuth<UserSalesMetric[]>(API_ENDPOINTS.userPerformance, filters)
-
-// =================== CONFIGURAÇÕES DEFAULT ===================
+// =================== FILTROS PADRÃO ===================
 
 const DEFAULT_FILTERS: DashboardFilters = {
     period: 'month',
+    compareWith: 'previous',
     includeComparison: true,
-    limit: 10
+    includeGrowth: true,
+    includeTrends: true,
+    limit: 10,
+    sortBy: 'revenue',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
-// Configurações de cache otimizadas por tipo de dado
-const CACHE_CONFIG = {
-    overview: { staleTime: 5 * 60 * 1000, cacheTime: 10 * 60 * 1000 }, // 5min stale, 10min cache
-    products: { staleTime: 10 * 60 * 1000, cacheTime: 30 * 60 * 1000 }, // 10min stale, 30min cache
-    salesChart: { staleTime: 2 * 60 * 1000, cacheTime: 15 * 60 * 1000 }, // 2min stale, 15min cache
-    alerts: { staleTime: 1 * 60 * 1000, cacheTime: 5 * 60 * 1000 }, // 1min stale, 5min cache - dados críticos
-    userPerformance: { staleTime: 15 * 60 * 1000, cacheTime: 60 * 60 * 1000 } // 15min stale, 1h cache
-} as const
+// =================== HOOK PRINCIPAL ===================
 
-// =================== PERMISSION SYSTEM ===================
+export const useDashboard = (options: UseDashboardOptions = {}): UseDashboardReturn => {
+    const {
+        autoRefresh = false,
+        refreshInterval = 300000, // 5 minutos
+        enableCache = true,
+        initialFilters = {}
+    } = options
 
-const checkPermission = (userRole: string, action: string): boolean => {
-    if (userRole === 'ADMIN') return true
-    if (userRole === 'MANAGER') return true
-    if (userRole === 'SALESPERSON') {
-        const allowedActions = ['dashboard:read', 'sales:read', 'products:read']
-        return allowedActions.includes(action)
-    }
-    return false
-}
+    // Estados principais
+    const [overview, setOverview] = useState<DashboardOverview | null>(null)
+    const [topProducts, setTopProducts] = useState<ProductSaleMetric[]>([])
+    const [userPerformance, setUserPerformance] = useState<UserSalesMetric[]>([])
+    const [categoryMetrics, setCategoryMetrics] = useState<CategorySalesMetric[]>([])
+    const [topCustomers, setTopCustomers] = useState<CustomerMetric[]>([])
+    const [inventoryAlerts, setInventoryAlerts] = useState<InventoryAlert[]>([])
+    const [salesChartData, setSalesChartData] = useState<SalesChartData[]>([])
+    const [categoryChartData, setCategoryChartData] = useState<CategoryChartData[]>([])
 
-// =================== MAIN HOOK ===================
-
-interface UseDashboardOptions {
-    enabled?: boolean
-    refetchInterval?: number | false
-    onError?: (error: Error) => void
-}
-
-export const useDashboard = (
-    filters: Partial<DashboardFilters> = {},
-    enabled: boolean = true,
-    options: UseDashboardOptions = {}
-) => {
-    const { data: session } = useSession()
-    const queryClient = useQueryClient()
-
-    const finalFilters = { ...DEFAULT_FILTERS, ...filters }
-    const canAccess = session && checkPermission(session.user.role, 'dashboard:read')
-
-    // Rastrear última atualização real
-    const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null)
-
-    // =================== INDIVIDUAL QUERIES ===================
-
-    const overviewQuery = useQuery({
-        queryKey: dashboardKeys.overview(finalFilters),
-        queryFn: () => fetchOverview(finalFilters),
-        enabled: Boolean(enabled && canAccess),
-        ...CACHE_CONFIG.overview,
-        refetchInterval: options.refetchInterval,
-        retry: 3,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+    // Estados de controle
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [loadingStates, setLoadingStates] = useState({
+        overview: false,
+        topProducts: false,
+        userPerformance: false,
+        categoryMetrics: false,
+        inventoryAlerts: false,
+        charts: false
     })
 
-    const productsQuery = useQuery({
-        queryKey: dashboardKeys.products(finalFilters),
-        queryFn: () => fetchTopProducts(finalFilters),
-        enabled: Boolean(enabled && canAccess && checkPermission(session?.user.role || '', 'products:read')),
-        ...CACHE_CONFIG.products,
-        refetchInterval: options.refetchInterval
+    // Metadados
+    const [metadata, setMetadata] = useState({
+        lastUpdate: null as Date | null,
+        cached: false,
+        cacheExpiry: null as Date | null,
+        queryTime: 0
     })
 
-    const salesChartQuery = useQuery({
-        queryKey: dashboardKeys.salesChart(finalFilters),
-        queryFn: () => fetchSalesChart(finalFilters),
-        enabled: Boolean(enabled && canAccess && checkPermission(session?.user.role || '', 'sales:read')),
-        ...CACHE_CONFIG.salesChart,
-        refetchInterval: options.refetchInterval
-    })
-
-    const alertsQuery = useQuery({
-        queryKey: dashboardKeys.alerts({}),
-        queryFn: () => fetchInventoryAlerts({}),
-        enabled: Boolean(enabled && canAccess),
-        ...CACHE_CONFIG.alerts,
-        refetchInterval: 5 * 60 * 1000 // Alertas sempre com refresh automático
-    })
-
-    const userPerformanceQuery = useQuery({
-        queryKey: dashboardKeys.userPerformance(finalFilters),
-        queryFn: () => fetchUserPerformance(finalFilters),
-        enabled: Boolean(enabled && canAccess && checkPermission(session?.user.role || '', 'dashboard:read')),
-        ...CACHE_CONFIG.userPerformance
-    })
-
-    // =================== COMPUTED VALUES ===================
-
-    const isLoading = overviewQuery.isLoading || productsQuery.isLoading || salesChartQuery.isLoading
-    const isRefreshing = overviewQuery.isFetching || productsQuery.isFetching || salesChartQuery.isFetching
-
-    const hasAnyError = overviewQuery.isError || productsQuery.isError || salesChartQuery.isError || alertsQuery.isError
-
-    const errors = {
-        overview: overviewQuery.error?.message || null,
-        products: productsQuery.error?.message || null,
-        salesChart: salesChartQuery.error?.message || null,
-        alerts: alertsQuery.error?.message || null,
-        userPerformance: userPerformanceQuery.error?.message || null
-    }
-
-    const loading = {
-        overview: overviewQuery.isLoading,
-        products: productsQuery.isLoading,
-        salesChart: salesChartQuery.isLoading,
-        categoryChart: false, // Implementar se necessário
-        alerts: alertsQuery.isLoading,
-        userPerformance: userPerformanceQuery.isLoading
-    }
-
-    // =================== ACTIONS ===================
-
-    const refresh = useCallback(async () => {
-        const queries = [
-            overviewQuery.refetch(),
-            productsQuery.refetch(),
-            salesChartQuery.refetch(),
-            alertsQuery.refetch()
-        ]
-
-        await Promise.allSettled(queries)
-        setLastUpdated(new Date())
-    }, [overviewQuery, productsQuery, salesChartQuery, alertsQuery])
-
-    const refreshSection = useCallback(async (section: keyof typeof loading) => {
-        const queryMap = {
-            overview: overviewQuery,
-            products: productsQuery,
-            salesChart: salesChartQuery,
-            alerts: alertsQuery,
-            userPerformance: userPerformanceQuery,
-            categoryChart: null // Implementar se necessário
-        }
-
-        const query = queryMap[section]
-        if (query) {
-            await query.refetch()
-            setLastUpdated(new Date())
-        }
-    }, [overviewQuery, productsQuery, salesChartQuery, alertsQuery, userPerformanceQuery])
-
-    const invalidateAll = useCallback(() => {
-        queryClient.invalidateQueries({ queryKey: dashboardKeys.all })
-    }, [queryClient])
-
-    const prefetchData = useCallback((newFilters: Partial<DashboardFilters>) => {
-        const prefetchFilters = { ...finalFilters, ...newFilters }
-
-        // Prefetch dos dados mais importantes
-        queryClient.prefetchQuery({
-            queryKey: dashboardKeys.overview(prefetchFilters),
-            queryFn: () => fetchOverview(prefetchFilters),
-            staleTime: CACHE_CONFIG.overview.staleTime
-        })
-
-        queryClient.prefetchQuery({
-            queryKey: dashboardKeys.products(prefetchFilters),
-            queryFn: () => fetchTopProducts(prefetchFilters),
-            staleTime: CACHE_CONFIG.products.staleTime
-        })
-    }, [queryClient, finalFilters])
-
-    const clearErrors = useCallback(() => {
-        // React Query gerencia os erros automaticamente
-        // Mas podemos resetar queries com erro se necessário
-        if (overviewQuery.isError) overviewQuery.refetch()
-        if (productsQuery.isError) productsQuery.refetch()
-        if (salesChartQuery.isError) salesChartQuery.refetch()
-        if (alertsQuery.isError) alertsQuery.refetch()
-    }, [overviewQuery, productsQuery, salesChartQuery, alertsQuery])
-
-    const getLoadingStatus = useCallback(() => {
-        const queries = [overviewQuery, productsQuery, salesChartQuery, alertsQuery]
-        const total = queries.length
-        const completed = queries.filter(q => !q.isLoading).length
-        const percentage = Math.round((completed / total) * 100)
-
-        return { completed, total, percentage }
-    }, [overviewQuery, productsQuery, salesChartQuery, alertsQuery])
-
-    // Função para buscar dados do gráfico de vendas com filtros específicos
-    const fetchSalesChartWithFilters = useCallback(async (chartFilters: { period: string; granularity?: string }) => {
-        const newFilters = { ...finalFilters, period: chartFilters.period as any, granularity: chartFilters.granularity }
-        
-        // Invalidar query atual e buscar com novos filtros
-        await queryClient.invalidateQueries({ queryKey: dashboardKeys.salesChart(finalFilters) })
-        
-        return queryClient.fetchQuery({
-            queryKey: dashboardKeys.salesChart(newFilters),
-            queryFn: () => fetchSalesChart(newFilters),
-            staleTime: CACHE_CONFIG.salesChart.staleTime
-        })
-    }, [queryClient, finalFilters])
-
-    // =================== DEBUG LOGGING ===================
-    
-    React.useEffect(() => {
-        if (process.env.NODE_ENV === 'development') {
-            console.log('Dashboard Data Status:', {
-                overview: overviewQuery.data ? 'loaded' : 'empty',
-                topProducts: Array.isArray(productsQuery.data) ? productsQuery.data.length : 0,
-                salesChart: Array.isArray(salesChartQuery.data) ? salesChartQuery.data.length : 0,
-                alerts: Array.isArray(alertsQuery.data) ? alertsQuery.data.length : 0,
-                errors: {
-                    overview: overviewQuery.error?.message,
-                    products: productsQuery.error?.message,
-                    salesChart: salesChartQuery.error?.message,
-                    alerts: alertsQuery.error?.message
-                }
-            })
-        }
-    }, [overviewQuery.data, productsQuery.data, salesChartQuery.data, alertsQuery.data])
-
-    // =================== MOCK DATA FOR DEVELOPMENT ===================
-    
-    const getMockData = useCallback(() => {
-        const shouldUseMock = process.env.NODE_ENV === 'development' && !overviewQuery.data
-
-        if (shouldUseMock) {
-            return {
-                overview: {
-                    salesMetrics: {
-                        today: {
-                            count: 5,
-                            total: new Decimal(2500),
-                            average: new Decimal(500)
-                        },
-                        month: {
-                            count: 45,
-                            total: new Decimal(125000),
-                            average: new Decimal(2778),
-                            growth: 15.5
-                        },
-                        year: {
-                            count: 420,
-                            total: new Decimal(1250000),
-                            average: new Decimal(2976),
-                            growth: 8.3
-                        }
-                    },
-                    productMetrics: {
-                        totalProducts: 150,
-                        lowStockCount: 8,
-                        outOfStockCount: 3,
-                        topSellingToday: []
-                    },
-                    customerMetrics: {
-                        totalCustomers: 320,
-                        newCustomersThisMonth: 25,
-                        topCustomers: []
-                    },
-                    performanceMetrics: {
-                        salesByUser: [],
-                        salesByCategory: [],
-                        conversionRate: 0.65
-                    }
-                },
-                topProducts: [
-                    {
-                        productId: 1,
-                        productName: 'Produto Demo 1',
-                        productCode: 'DEMO001',
-                        categoryName: 'Categoria Demo',
-                        totalQuantitySold: 50,
-                        totalRevenue: new Decimal(5000),
-                        salesCount: 15,
-                        averageQuantityPerSale: 3.33,
-                        lastSaleDate: new Date(),
-                        trend: 'UP' as const
-                    },
-                    {
-                        productId: 2,
-                        productName: 'Produto Demo 2',
-                        productCode: 'DEMO002',
-                        categoryName: 'Categoria Demo',
-                        totalQuantitySold: 35,
-                        totalRevenue: new Decimal(3500),
-                        salesCount: 12,
-                        averageQuantityPerSale: 2.92,
-                        lastSaleDate: new Date(),
-                        trend: 'STABLE' as const
-                    }
-                ],
-                salesChart: [
-                    { date: '2024-09-01', sales: 1200, revenue: 15000, orders: 12 },
-                    { date: '2024-09-02', sales: 1500, revenue: 18000, orders: 15 },
-                    { date: '2024-09-03', sales: 1800, revenue: 22000, orders: 18 },
-                    { date: '2024-09-04', sales: 1300, revenue: 16000, orders: 13 },
-                    { date: '2024-09-05', sales: 2000, revenue: 25000, orders: 20 }
-                ],
-                inventoryAlerts: [
-                    {
-                        productId: 3,
-                        productName: 'Produto Baixo Estoque',
-                        productCode: 'LOW001',
-                        categoryName: 'Categoria Crítica',
-                        currentStock: 5,
-                        minStock: 10,
-                        maxStock: 50,
-                        salesLast30Days: 45,
-                        averageDailySales: 1.5,
-                        daysUntilOutOfStock: 3,
-                        urgencyLevel: 'CRITICAL' as const,
-                        isOutOfStock: false
-                    }
-                ]
-            }
-        }
-
-        return null
-    }, [overviewQuery.data])
-
-    const mockData = getMockData()
-
-    // =================== RETURN ===================
-
-    return {
-        // Dados - com fallback para mock em desenvolvimento
-        overview: overviewQuery.data || mockData?.overview || null,
-        topProducts: productsQuery.data || mockData?.topProducts || [],
-        salesChart: salesChartQuery.data || mockData?.salesChart || [],
-        categoryChart: [], // Implementar se necessário
-        inventoryAlerts: alertsQuery.data || mockData?.inventoryAlerts || [],
-        userPerformance: userPerformanceQuery.data || [],
-
-        // Estados
-        loading,
-        errors,
-        isLoading,
-        isRefreshing,
-        hasAnyError,
-        lastUpdated,
-
-        // Ações
-        refresh,
-        refreshSection,
-        clearErrors,
-        invalidateAll,
-        prefetchData,
-        fetchSalesChart: fetchSalesChartWithFilters, // CORRIGIDO: Agora está disponível
-
-        // Utilidades
-        getLoadingStatus,
-        hasPermission: (action: string) => checkPermission(session?.user.role || '', action), // CORRIGIDO: Função properly exposed
-
-        // Query objects para controle avançado
-        queries: {
-            overview: overviewQuery,
-            products: productsQuery,
-            salesChart: salesChartQuery,
-            alerts: alertsQuery,
-            userPerformance: userPerformanceQuery
-        },
-
-        // Debug info
-        debug: process.env.NODE_ENV === 'development' ? {
-            usingMockData: !!mockData,
-            queryStates: {
-                overview: { loading: overviewQuery.isLoading, error: !!overviewQuery.error, data: !!overviewQuery.data },
-                products: { loading: productsQuery.isLoading, error: !!productsQuery.error, data: !!productsQuery.data },
-                salesChart: { loading: salesChartQuery.isLoading, error: !!salesChartQuery.error, data: !!salesChartQuery.data },
-                alerts: { loading: alertsQuery.isLoading, error: !!alertsQuery.error, data: !!alertsQuery.data }
-            }
-        } : undefined
-    }
-}
-
-// =================== FILTERS HOOK ===================
-
-export const useDashboardFilters = (initialFilters: Partial<DashboardFilters> = {}) => {
-    const queryClient = useQueryClient()
-
-    const [filters, setFilters] = React.useState<DashboardFilters>({
+    // Filtros
+    const [filters, setFilters] = useState<DashboardFilters>({
         ...DEFAULT_FILTERS,
         ...initialFilters
     })
 
-    const updateFilter = useCallback(<K extends keyof DashboardFilters>(
-        key: K,
-        value: DashboardFilters[K]
-    ) => {
-        setFilters(prev => {
-            const newFilters = { ...prev, [key]: value }
+    // =================== FUNÇÕES AUXILIARES ===================
 
-            // Prefetch com novos filtros
-            queryClient.prefetchQuery({
-                queryKey: dashboardKeys.overview(newFilters),
-                queryFn: () => fetchOverview(newFilters),
-                staleTime: CACHE_CONFIG.overview.staleTime
+    const updateLoadingState = (key: string, isLoading: boolean) => {
+        setLoadingStates(prev => ({ ...prev, [key]: isLoading }))
+    }
+
+    const buildApiUrl = (endpoint: string, params?: Record<string, any>) => {
+        const url = new URL(`/api/dashboard/${endpoint}`, window.location.origin)
+
+        // Adicionar filtros principais
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                url.searchParams.append(key, String(value))
+            }
+        })
+
+        // Adicionar parâmetros específicos
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    url.searchParams.append(key, String(value))
+                }
+            })
+        }
+
+        if (enableCache) {
+            url.searchParams.append('cache', 'true')
+        }
+
+        return url.toString()
+    }
+
+    const handleApiError = (err: unknown, context: string) => {
+        const message = err instanceof Error ? err.message : `Erro ao buscar ${context}`
+        setError(message)
+        console.error(`Dashboard API Error (${context}):`, err)
+        return message
+    }
+
+    // =================== FUNÇÕES DE BUSCA ===================
+
+    const fetchOverview = useCallback(async () => {
+        try {
+            updateLoadingState('overview', true)
+            setError(null)
+
+            const startTime = performance.now()
+            const response = await fetch(buildApiUrl('overview'))
+
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar visão geral: ${response.statusText}`)
+            }
+
+            const result: DashboardResponse<DashboardOverview> = await response.json()
+            const queryTime = performance.now() - startTime
+
+            setOverview(result.data)
+            setMetadata({
+                lastUpdate: new Date(result.metadata.generatedAt),
+                cached: result.metadata.performance.cached,
+                cacheExpiry: result.metadata.performance.cacheExpiry ?
+                    new Date(result.metadata.performance.cacheExpiry) : null,
+                queryTime: Math.round(queryTime)
             })
 
-            return newFilters
-        })
-    }, [queryClient])
+            return result.data
+        } catch (err) {
+            handleApiError(err, 'visão geral')
+            return null
+        } finally {
+            updateLoadingState('overview', false)
+        }
+    }, [filters, enableCache])
+
+    const fetchTopProducts = useCallback(async (limit?: number) => {
+        try {
+            updateLoadingState('topProducts', true)
+            setError(null)
+
+            const params = limit ? { limit } : {}
+            const response = await fetch(buildApiUrl('top-products', params))
+
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar top produtos: ${response.statusText}`)
+            }
+
+            const result = await response.json()
+            setTopProducts(result.data || result)
+            return result.data || result
+        } catch (err) {
+            handleApiError(err, 'top produtos')
+            return []
+        } finally {
+            updateLoadingState('topProducts', false)
+        }
+    }, [filters, enableCache])
+
+    const fetchUserPerformance = useCallback(async (userId?: number) => {
+        try {
+            updateLoadingState('userPerformance', true)
+            setError(null)
+
+            const params = userId ? { userId } : {}
+            const response = await fetch(buildApiUrl('user-performance', params))
+
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar performance de usuários: ${response.statusText}`)
+            }
+
+            const result = await response.json()
+            setUserPerformance(result.data || result)
+            return result.data || result
+        } catch (err) {
+            handleApiError(err, 'performance de usuários')
+            return []
+        } finally {
+            updateLoadingState('userPerformance', false)
+        }
+    }, [filters, enableCache])
+
+    const fetchCategoryMetrics = useCallback(async (categoryId?: number) => {
+        try {
+            updateLoadingState('categoryMetrics', true)
+            setError(null)
+
+            const params = categoryId ? { categoryId } : {}
+            const response = await fetch(buildApiUrl('category-metrics', params))
+
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar métricas de categorias: ${response.statusText}`)
+            }
+
+            const result = await response.json()
+            setCategoryMetrics(result.data || result)
+            return result.data || result
+        } catch (err) {
+            handleApiError(err, 'métricas de categorias')
+            return []
+        } finally {
+            updateLoadingState('categoryMetrics', false)
+        }
+    }, [filters, enableCache])
+
+    const fetchInventoryAlerts = useCallback(async (urgencyLevel?: string) => {
+        try {
+            updateLoadingState('inventoryAlerts', true)
+            setError(null)
+
+            const params = urgencyLevel ? { urgencyLevel } : {}
+            const response = await fetch(buildApiUrl('inventory-alerts', params))
+
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar alertas de estoque: ${response.statusText}`)
+            }
+
+            const result = await response.json()
+            setInventoryAlerts(result.data || result)
+            return result.data || result
+        } catch (err) {
+            handleApiError(err, 'alertas de estoque')
+            return []
+        } finally {
+            updateLoadingState('inventoryAlerts', false)
+        }
+    }, [filters, enableCache])
+
+    const fetchCharts = useCallback(async () => {
+        try {
+            updateLoadingState('charts', true)
+            setError(null)
+
+            const [salesResponse, categoryResponse] = await Promise.all([
+                fetch(buildApiUrl('sales-chart')),
+                fetch(buildApiUrl('category-chart'))
+            ])
+
+            if (!salesResponse.ok || !categoryResponse.ok) {
+                throw new Error('Erro ao buscar dados dos gráficos')
+            }
+
+            const [salesResult, categoryResult] = await Promise.all([
+                salesResponse.json(),
+                categoryResponse.json()
+            ])
+
+            setSalesChartData(salesResult.data || salesResult)
+            setCategoryChartData(categoryResult.data || categoryResult)
+
+            return {
+                sales: salesResult.data || salesResult,
+                categories: categoryResult.data || categoryResult
+            }
+        } catch (err) {
+            handleApiError(err, 'dados dos gráficos')
+            return { sales: [], categories: [] }
+        } finally {
+            updateLoadingState('charts', false)
+        }
+    }, [filters, enableCache])
+
+    // =================== FUNÇÕES DE REFRESH ===================
+
+    const refresh = useCallback(async () => {
+        setLoading(true)
+        setError(null)
+
+        try {
+            await Promise.all([
+                fetchOverview(),
+                fetchTopProducts(),
+                fetchUserPerformance(),
+                fetchCategoryMetrics(),
+                fetchInventoryAlerts(),
+                fetchCharts()
+            ])
+        } catch (err) {
+            handleApiError(err, 'atualização completa')
+        } finally {
+            setLoading(false)
+        }
+    }, [
+        fetchOverview,
+        fetchTopProducts,
+        fetchUserPerformance,
+        fetchCategoryMetrics,
+        fetchInventoryAlerts,
+        fetchCharts
+    ])
+
+    // =================== FUNÇÕES DE FILTRO ===================
 
     const updateFilters = useCallback((newFilters: Partial<DashboardFilters>) => {
         setFilters(prev => ({ ...prev, ...newFilters }))
     }, [])
 
     const resetFilters = useCallback(() => {
-        setFilters(DEFAULT_FILTERS)
+        setFilters({ ...DEFAULT_FILTERS, ...initialFilters })
+    }, [initialFilters])
+
+    const setDateRange = useCallback((dateFrom: Date, dateTo: Date) => {
+        setFilters(prev => ({
+            ...prev,
+            period: 'custom',
+            dateFrom,
+            dateTo
+        }))
     }, [])
 
+    const setPeriod = useCallback((period: DashboardFilters['period']) => {
+        setFilters(prev => ({
+            ...prev,
+            period,
+            dateFrom: undefined,
+            dateTo: undefined
+        }))
+    }, [])
+
+    // =================== EFFECTS ===================
+
+    // Carregamento inicial
+    useEffect(() => {
+        refresh()
+    }, [filters.period, filters.dateFrom, filters.dateTo, filters.userId, filters.categoryId])
+
+    // Auto-refresh
+    useEffect(() => {
+        if (!autoRefresh) return
+
+        const interval = setInterval(refresh, refreshInterval)
+        return () => clearInterval(interval)
+    }, [autoRefresh, refreshInterval, refresh])
+
+    // =================== RETURN ===================
+
     return {
-        filters,
-        updateFilter,
+        // Dados
+        overview,
+        topProducts,
+        userPerformance,
+        categoryMetrics,
+        topCustomers,
+        inventoryAlerts,
+        salesChartData,
+        categoryChartData,
+
+        // Estados
+        loading,
+        error,
+        loadingStates,
+        metadata,
+
+        // Ações
+        refresh,
+        refreshOverview: fetchOverview,
+        refreshTopProducts: fetchTopProducts,
+        refreshUserPerformance: fetchUserPerformance,
+        refreshCategoryMetrics: fetchCategoryMetrics,
+        refreshInventoryAlerts: fetchInventoryAlerts,
+        refreshCharts: fetchCharts,
+
+        // Filtros
         updateFilters,
-        resetFilters
+        resetFilters,
+        setDateRange,
+        setPeriod
     }
 }
 
-// =================== UTILITY HOOKS ===================
+// =================== HOOKS ESPECÍFICOS ===================
 
-// Hook para dados específicos com cache otimizado
-export const useDashboardOverview = (filters: Partial<DashboardFilters> = {}) => {
-    const { data: session } = useSession()
-    const finalFilters = { ...DEFAULT_FILTERS, ...filters }
-
-    return useQuery({
-        queryKey: dashboardKeys.overview(finalFilters),
-        queryFn: () => fetchOverview(finalFilters),
-        enabled: Boolean(session && checkPermission(session.user.role, 'dashboard:read')),
-        ...CACHE_CONFIG.overview,
-        select: (data) => data, // Pode transformar dados aqui se necessário
+// Hook para overview apenas
+export const useDashboardOverview = (filters?: Partial<DashboardFilters>) => {
+    const { overview, loading, error, refreshOverview, metadata } = useDashboard({
+        initialFilters: filters
     })
+
+    return {
+        overview,
+        loading: loading,
+        error,
+        refresh: refreshOverview,
+        metadata
+    }
 }
 
-// Hook para alertas críticos (sempre atualizado)
-export const useCriticalAlerts = () => {
-    const { data: session } = useSession()
-
-    return useQuery({
-        queryKey: dashboardKeys.alerts({ priority: 'CRITICAL' }),
-        queryFn: () => fetchInventoryAlerts({ priority: 'CRITICAL' }),
-        enabled: Boolean(session),
-        staleTime: 30 * 1000, // 30 segundos para alertas crítico
-        refetchInterval: 60 * 1000, // Refetch a cada minuto
-        select: (data) => data.filter(alert => alert.urgencyLevel === 'CRITICAL')
+// Hook para top produtos apenas
+export const useTopProducts = (limit: number = 10, filters?: Partial<DashboardFilters>) => {
+    const { topProducts, loadingStates, error, refreshTopProducts } = useDashboard({
+        initialFilters: { ...filters, limit }
     })
+
+    return {
+        products: topProducts,
+        loading: loadingStates.topProducts,
+        error,
+        refresh: () => refreshTopProducts(limit)
+    }
+}
+
+// Hook para alertas de inventário apenas
+export const useInventoryDashboard = (urgencyLevel?: string, filters?: Partial<DashboardFilters>) => {
+    const { inventoryAlerts, loadingStates, error, refreshInventoryAlerts } = useDashboard({
+        initialFilters: filters
+    })
+
+    return {
+        alerts: inventoryAlerts,
+        loading: loadingStates.inventoryAlerts,
+        error,
+        refresh: () => refreshInventoryAlerts(urgencyLevel)
+    }
+}
+
+// Hook para charts apenas
+export const useDashboardCharts = (filters?: Partial<DashboardFilters>) => {
+    const { salesChartData, categoryChartData, loadingStates, error, refreshCharts } = useDashboard({
+        initialFilters: filters
+    })
+
+    return {
+        salesData: salesChartData,
+        categoryData: categoryChartData,
+        loading: loadingStates.charts,
+        error,
+        refresh: refreshCharts
+    }
 }
