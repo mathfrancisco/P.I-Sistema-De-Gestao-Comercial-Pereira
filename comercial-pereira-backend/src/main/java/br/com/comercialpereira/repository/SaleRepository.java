@@ -62,4 +62,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
 
     @Query("SELECT COUNT(s) FROM Sale s WHERE s.status = :status")
     long countByStatus(@Param("status") SaleStatus status);
+
+    @Query("SELECT COUNT(s) FROM Sale s WHERE s.customer.id = :customerId")
+    long countByCustomerId(Long customerId);
 }

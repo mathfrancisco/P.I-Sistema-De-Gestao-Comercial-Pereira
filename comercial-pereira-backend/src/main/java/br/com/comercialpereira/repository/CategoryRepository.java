@@ -22,6 +22,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     boolean existsByCnae(String cnae);
 
+    boolean existsByNameAndIdNot(String name, Long id);
+
+    boolean existsByCnaeAndIdNot(String cnae, Long id);
+
     List<Category> findByIsActiveOrderByName(Boolean isActive);
 
     @Query("SELECT c FROM Category c WHERE " +
@@ -39,4 +43,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("SELECT COUNT(c) FROM Category c WHERE c.isActive = :isActive")
     long countByIsActive(@Param("isActive") Boolean isActive);
+
+    @Query("SELECT c FROM Category c WHERE c.cnae IS NOT NULL AND c.isActive = true ORDER BY c.name")
+    List<Category> findCategoriesWithCnae();
 }
