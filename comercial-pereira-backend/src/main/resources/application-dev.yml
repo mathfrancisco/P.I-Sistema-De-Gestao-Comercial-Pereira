@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/comercial_pereira_dev
+    username: dev_user
+    password: dev_pass
+
+  jpa:
+    show-sql: true
+
+  devtools:
+    restart:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    br.com.comercialpereira: DEBUG
