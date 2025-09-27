@@ -31,121 +31,93 @@ public class SaleService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Cria uma nova venda.
-     */
     @Transactional
     public SaleResponse create(CreateSaleRequest request) {
-        // Busca o cliente ou lança exceção
         Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cliente não encontrado."));
+                .orElseThrow(() -> new ApiException("Cliente não encontrado.", HttpStatus.NOT_FOUND));
 
-        // Busca o usuário logado (exemplo, ajuste conforme sua implementação de segurança)
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+                .orElseThrow(() -> new ApiException("Usuário não encontrado.", HttpStatus.NOT_FOUND));
 
-        // Cria a entidade Sale
         Sale sale = Sale.builder()
                 .customer(customer)
                 .user(user)
                 .notes(request.getNotes())
                 .discount(request.getDiscount())
                 .tax(request.getTax())
-                .status(SaleStatus.DRAFT) // Vendas começam como rascunho
+                .status(SaleStatus.DRAFT)
                 .saleDate(LocalDateTime.now())
                 .build();
 
-        // Processa e adiciona os itens da venda
         List<SaleItem> items = processSaleItems(request.getItems(), sale);
         sale.setItems(items);
-
-        // Recalcula o total final da venda
         sale.recalculateTotal();
 
-        // Salva a venda e seus itens (devido ao CascadeType.ALL)
         Sale savedSale = saleRepository.save(sale);
-        return toSaleResponse(savedSale, true); // Retorna com itens
+        return toSaleResponse(savedSale, true);
     }
 
-    /**
-     * Busca uma venda pelo ID.
-     */
     @Transactional(readOnly = true)
     public SaleResponse findById(Long id) {
         Sale sale = saleRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venda não encontrada."));
-        return toSaleResponse(sale, true); // Retorna com itens
+                .orElseThrow(() -> new ApiException("Venda não encontrada.", HttpStatus.NOT_FOUND));
+        return toSaleResponse(sale, true);
     }
 
-    /**
-     * Lista todas as vendas com filtros e paginação.
-     */
     @Transactional(readOnly = true)
     public PageResponse<SaleResponse> findAll(Long customerId, Long userId, SaleStatus status, Pageable pageable) {
         Page<Sale> salePage = saleRepository.findByFilters(customerId, userId, status, null, null, null, null, pageable);
-        // Mapeia para DTO sem incluir os itens para performance
         Page<SaleResponse> responsePage = salePage.map(sale -> toSaleResponse(sale, false));
         return PageResponse.from(responsePage);
     }
 
-    /**
-     * Atualiza os dados de uma venda.
-     */
     @Transactional
     public SaleResponse update(Long id, UpdateSaleRequest request) {
         Sale sale = saleRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venda não encontrada."));
+                .orElseThrow(() -> new ApiException("Venda não encontrada.", HttpStatus.NOT_FOUND));
 
-        // Validação: Apenas vendas em rascunho ou pendentes podem ser editadas.
         if (!sale.isEditable()) {
-            throw new ApiException(HttpStatus.CONFLICT, "Esta venda não pode mais ser editada. Status: " + sale.getStatus());
+            throw new ApiException("Esta venda não pode mais ser editada. Status: " + sale.getStatus(), HttpStatus.CONFLICT);
         }
 
-        // Atualiza campos
         if (request.getCustomerId() != null) {
             Customer customer = customerRepository.findById(request.getCustomerId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cliente não encontrado."));
+                    .orElseThrow(() -> new ApiException("Cliente não encontrado.", HttpStatus.NOT_FOUND));
             sale.setCustomer(customer);
         }
         if (request.getNotes() != null) sale.setNotes(request.getNotes());
         if (request.getDiscount() != null) sale.setDiscount(request.getDiscount());
         if (request.getTax() != null) sale.setTax(request.getTax());
 
-        sale.recalculateTotal(); // Recalcula o total com os novos descontos/taxas
+        sale.recalculateTotal();
         Sale updatedSale = saleRepository.save(sale);
         return toSaleResponse(updatedSale, true);
     }
 
-    /**
-     * Cancela uma venda.
-     */
     @Transactional
     public SaleResponse cancel(Long id) {
         Sale sale = saleRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venda não encontrada."));
+                .orElseThrow(() -> new ApiException("Venda não encontrada.", HttpStatus.NOT_FOUND));
 
         if (!sale.isCancellable()) {
-            throw new ApiException(HttpStatus.CONFLICT, "Esta venda não pode ser cancelada. Status: " + sale.getStatus());
+            throw new ApiException("Esta venda não pode ser cancelada. Status: " + sale.getStatus(), HttpStatus.CONFLICT);
         }
 
         sale.setStatus(SaleStatus.CANCELLED);
-        // Lógica adicional: Se o estoque foi reservado, aqui seria o lugar para devolvê-lo.
-
         Sale cancelledSale = saleRepository.save(sale);
         return toSaleResponse(cancelledSale, false);
     }
+
     @Transactional
     public SaleResponse addItem(Long saleId, AddSaleItemRequest itemRequest) {
         Sale sale = findSaleByIdOrThrow(saleId);
         if (!sale.isEditable()) {
-            throw new ApiException(HttpStatus.CONFLICT, "Não é possível adicionar itens a esta venda. Status: " + sale.getStatus());
+            throw new ApiException("Não é possível adicionar itens a esta venda. Status: " + sale.getStatus(), HttpStatus.CONFLICT);
         }
 
         Product product = productRepository.findById(itemRequest.getProductId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Produto não encontrado."));
-
-        // Opcional: Verificar se o item já existe na venda. Se sim, talvez seja melhor atualizar a quantidade.
+                .orElseThrow(() -> new ApiException("Produto não encontrado.", HttpStatus.NOT_FOUND));
 
         SaleItem newItem = SaleItem.builder()
                 .sale(sale)
@@ -166,21 +138,19 @@ public class SaleService {
     public SaleResponse updateItem(Long saleId, Long itemId, UpdateSaleItemRequest itemRequest) {
         Sale sale = findSaleByIdOrThrow(saleId);
         if (!sale.isEditable()) {
-            throw new ApiException(HttpStatus.CONFLICT, "Não é possível alterar itens desta venda. Status: " + sale.getStatus());
+            throw new ApiException("Não é possível alterar itens desta venda. Status: " + sale.getStatus(), HttpStatus.CONFLICT);
         }
 
         SaleItem itemToUpdate = sale.getItems().stream()
                 .filter(item -> item.getId().equals(itemId))
                 .findFirst()
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item não encontrado nesta venda."));
+                .orElseThrow(() -> new ApiException("Item não encontrado nesta venda.", HttpStatus.NOT_FOUND));
 
         if (itemRequest.getQuantity() != null) itemToUpdate.setQuantity(itemRequest.getQuantity());
         if (itemRequest.getUnitPrice() != null) itemToUpdate.setUnitPrice(itemRequest.getUnitPrice());
         if (itemRequest.getDiscount() != null) itemToUpdate.setDiscount(itemRequest.getDiscount());
 
-        // O @PreUpdate na entidade SaleItem irá recalcular o total do item
-
-        sale.recalculateTotal(); // Recalcula o total da venda principal
+        sale.recalculateTotal();
 
         Sale updatedSale = saleRepository.save(sale);
         return toSaleResponse(updatedSale, true);
@@ -190,13 +160,13 @@ public class SaleService {
     public SaleResponse removeItem(Long saleId, Long itemId) {
         Sale sale = findSaleByIdOrThrow(saleId);
         if (!sale.isEditable()) {
-            throw new ApiException(HttpStatus.CONFLICT, "Não é possível remover itens desta venda. Status: " + sale.getStatus());
+            throw new ApiException("Não é possível remover itens desta venda. Status: " + sale.getStatus(), HttpStatus.CONFLICT);
         }
 
         boolean removed = sale.getItems().removeIf(item -> item.getId().equals(itemId));
 
         if (!removed) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Item não encontrado nesta venda.");
+            throw new ApiException("Item não encontrado nesta venda.", HttpStatus.NOT_FOUND);
         }
 
         sale.recalculateTotal();
@@ -205,23 +175,19 @@ public class SaleService {
         return toSaleResponse(updatedSale, true);
     }
 
-    // Adicione este método auxiliar para evitar repetição
     private Sale findSaleByIdOrThrow(Long saleId) {
         return saleRepository.findById(saleId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Venda não encontrada."));
+                .orElseThrow(() -> new ApiException("Venda não encontrada.", HttpStatus.NOT_FOUND));
     }
-
-    // --- Métodos Auxiliares ---
 
     private List<SaleItem> processSaleItems(List<CreateSaleRequest.SaleItemRequest> itemRequests, Sale sale) {
         return itemRequests.stream().map(itemRequest -> {
             Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Produto com ID " + itemRequest.getProductId() + " não encontrado."));
+                    .orElseThrow(() -> new ApiException("Produto com ID " + itemRequest.getProductId() + " não encontrado.", HttpStatus.NOT_FOUND));
 
-            // Lógica de estoque: Verificar se há quantidade suficiente
-             if (product.getInventory().getQuantity() < itemRequest.getQuantity()) {
-                 throw new ApiException(HttpStatus.CONFLICT, "Estoque insuficiente para o produto: " + product.getName());
-             }
+            if (product.getInventory().getQuantity() < itemRequest.getQuantity()) {
+                throw new ApiException("Estoque insuficiente para o produto: " + product.getName(), HttpStatus.CONFLICT);
+            }
 
             BigDecimal unitPrice = (itemRequest.getUnitPrice() != null) ? itemRequest.getUnitPrice() : product.getPrice();
 

@@ -2,7 +2,10 @@ package br.com.comercialpereira.controller;
 
 import br.com.comercialpereira.dto.inventory.*;
 import br.com.comercialpereira.dto.movement.*;
+import br.com.comercialpereira.dto.user.UserResponse;
+import br.com.comercialpereira.exception.ApiException;
 import br.com.comercialpereira.services.InventoryService;
+import br.com.comercialpereira.services.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,6 +32,7 @@ import java.util.List;
 public class InventoryController {
 
     private final InventoryService inventoryService;
+    private final UserService userService;
 
     // =================== CRUD BÁSICO ===================
 
@@ -401,54 +405,30 @@ public class InventoryController {
     // =================== MÉTODOS AUXILIARES ===================
 
     private Long getCurrentUserId(Authentication authentication) {
-        // Implementar conforme sua estratégia de autenticação
-        // Exemplo com JWT ou User Details:
-        if (authentication != null && authentication.isAuthenticated()) {
-            // Se usando UserDetails customizado
-            // UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-            // return principal.getId();
-
-            // Se usando JWT com claims
-            // return Long.parseLong(authentication.getName());
-
-            // Temporário - retorna 1L para testes
-            return 1L;
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ApiException("Usuário não autenticado", HttpStatus.UNAUTHORIZED);
         }
-        throw new RuntimeException("Usuário não autenticado");
+
+        try {
+            // Se estiver usando JWT com claims onde o subject é o ID do usuário
+            String userId = authentication.getName();
+            return Long.parseLong(userId);
+
+        } catch (NumberFormatException e) {
+            // Se o getName() retorna email ao invés de ID, buscar pelo email
+            String email = authentication.getName();
+            UserResponse user = userService.findByEmail(email);
+
+            if (user == null) {
+                throw new ApiException("Usuário não encontrado", HttpStatus.NOT_FOUND);
+            }
+
+            return user.getId();
+        } catch (Exception e) {
+            log.error("Erro ao obter ID do usuário autenticado", e);
+            throw new ApiException("Erro ao obter dados do usuário", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
+
 }
 
-// =================== EXCEPTION HANDLER ESPECÍFICO ===================
-
-@RestControllerAdvice
-@Slf4j
-class InventoryControllerAdvice {
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Argumento inválido: {}", ex.getMessage());
-
-        ErrorResponse error = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(400)
-                .error("Bad Request")
-                .message(ex.getMessage())
-                .build();
-
-        return ResponseEntity.badRequest().body(error);
-    }
-}
-
-// =================== DTOs DE RESPOSTA AUXILIARES ===================
-
-@lombok.Data
-@lombok.Builder
-@lombok.NoArgsConstructor
-@lombok.AllArgsConstructor
-class ErrorResponse {
-    private LocalDateTime timestamp;
-    private Integer status;
-    private String error;
-    private String message;
-    private java.util.Map<String, String> validationErrors;
-}

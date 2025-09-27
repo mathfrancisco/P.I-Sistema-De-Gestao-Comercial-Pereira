@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -32,6 +31,7 @@ public class InventoryService {
     private final InventoryMovementRepository movementRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final SaleRepository saleRepository;
 
     // =================== CREATE ===================
 
@@ -264,8 +264,10 @@ public class InventoryService {
                 .quantity(request.getQuantity())
                 .reason(request.getReason())
                 .user(user)
-                .sale(request.getSaleId() != null ? Sale.builder().id(request.getSaleId()).build() : null)
+                .sale(request.getSaleId() != null ?
+                        saleRepository.getReferenceById(request.getSaleId()) : null)
                 .build();
+
 
         movementRepository.save(movement);
 
@@ -407,15 +409,13 @@ public class InventoryService {
 
     private void validateInventoryBusinessRules(Object request) {
         // Implementar validações de regras de negócio específicas
-        if (request instanceof CreateInventoryRequest) {
-            CreateInventoryRequest createRequest = (CreateInventoryRequest) request;
+        if (request instanceof CreateInventoryRequest createRequest) {
             if (createRequest.getMaxStock() != null && createRequest.getMinStock() != null) {
                 if (createRequest.getMaxStock() <= createRequest.getMinStock()) {
                     throw new ApiException("Estoque máximo deve ser maior que o mínimo", HttpStatus.BAD_REQUEST);
                 }
             }
-        } else if (request instanceof UpdateInventoryRequest) {
-            UpdateInventoryRequest updateRequest = (UpdateInventoryRequest) request;
+        } else if (request instanceof UpdateInventoryRequest updateRequest) {
             if (updateRequest.getMaxStock() != null && updateRequest.getMinStock() != null) {
                 if (updateRequest.getMaxStock() <= updateRequest.getMinStock()) {
                     throw new ApiException("Estoque máximo deve ser maior que o mínimo", HttpStatus.BAD_REQUEST);
@@ -490,7 +490,7 @@ public class InventoryService {
                 .sale(movement.getSale() != null ?
                         MovementResponse.SaleInfo.builder()
                                 .id(movement.getSale().getId())
-                                .customerName(movement.getSale().getCustomerName())
+                                .customerName(movement.getSale().getCustomer().getName())
                                 .build() : null)
                 .build();
     }

@@ -52,10 +52,10 @@ public class CustomerService {
     public CustomerResponse create(CreateCustomerRequest request) {
         // Valida se email e documento já existem
         if (request.getEmail() != null && customerRepository.existsByEmail(request.getEmail())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Email já está em uso por outro cliente.");
+            throw new ApiException("Email já está em uso por outro cliente.", HttpStatus.CONFLICT);
         }
         if (request.getDocument() != null && customerRepository.existsByDocument(request.getDocument())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Documento já está em uso por outro cliente.");
+            throw new ApiException("Documento já está em uso por outro cliente.", HttpStatus.CONFLICT);
         }
 
         Customer customer = toCustomerEntity(request);
@@ -74,7 +74,7 @@ public class CustomerService {
         // Valida se o novo email já pertence a OUTRO cliente
         if (request.getEmail() != null && !request.getEmail().equalsIgnoreCase(existingCustomer.getEmail())) {
             if (customerRepository.existsByEmail(request.getEmail())) {
-                throw new ApiException(HttpStatus.CONFLICT, "Email já está em uso por outro cliente.");
+                throw new ApiException("Email já está em uso por outro cliente.", HttpStatus.CONFLICT);
             }
             existingCustomer.setEmail(request.getEmail());
         }
@@ -82,7 +82,7 @@ public class CustomerService {
         // Valida se o novo documento já pertence a OUTRO cliente
         if (request.getDocument() != null && !request.getDocument().equals(existingCustomer.getDocument())) {
             if (customerRepository.existsByDocument(request.getDocument())) {
-                throw new ApiException(HttpStatus.CONFLICT, "Documento já está em uso por outro cliente.");
+                throw new ApiException("Documento já está em uso por outro cliente.", HttpStatus.CONFLICT);
             }
             existingCustomer.setDocument(request.getDocument());
         }
@@ -139,7 +139,7 @@ public class CustomerService {
      */
     private Customer findCustomerByIdOrThrow(Long id) {
         return customerRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cliente com ID " + id + " não encontrado."));
+                .orElseThrow(() -> new ApiException("Cliente com ID " + id + " não encontrado.", HttpStatus.NOT_FOUND));
     }
 
     /**

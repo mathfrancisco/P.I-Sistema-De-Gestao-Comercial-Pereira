@@ -55,3 +55,34 @@ INSERT INTO inventory (product_id, quantity, min_stock, max_stock, location) VAL
 INSERT INTO customers (name, email, phone, address, city, state, type, document, is_active) VALUES
 ('Loja do Bairro Ltda', 'contato@lojadobairro.com.br', '(85) 3456-7890', 'Rua das Flores, 123', 'Americana', 'SP', 'WHOLESALE', '12.345.678/0001-90', true),
 ('Maria da Silva', 'maria.silva@email.com', '(85) 9876-5432', 'Av. Principal, 456', 'Americana', 'SP', 'RETAIL', '123.456.789-01', true);
+
+-- 1. Inserir o registro principal da venda. O total (181.25) é a soma dos itens (129.90 + (2 * 25.50) - 10% de desconto)
+INSERT INTO sales (user_id, customer_id, total, discount, status, sale_date)
+VALUES (
+           1, -- user_id do Administrador
+           1, -- customer_id da Loja do Bairro
+           170.80, -- Total final da venda
+           10.10, -- Desconto total
+           'COMPLETED', -- Status da venda
+           CURRENT_TIMESTAMP - INTERVAL '1 day' -- Data da venda (ontem)
+       );
+
+-- 2. Inserir os itens dessa venda, usando o ID da venda que acabamos de criar (assumindo que seja 1)
+INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total, discount)
+VALUES
+    (
+        CURRVAL('sales_id_seq'), -- Pega o ID da última venda inserida
+        1, -- product_id do 'Aspirador de Pó Portátil'
+        1, -- quantidade
+        129.90, -- preço unitário
+        129.90, -- total do item
+        0.00 -- desconto do item
+    ),
+    (
+        CURRVAL('sales_id_seq'), -- Pega o ID da última venda inserida
+        3, -- product_id do 'Saco Plástico Transparente'
+        2, -- quantidade
+        25.50, -- preço unitário
+        51.00, -- total do item (2 * 25.50)
+        10.10 -- desconto do item (exemplo)
+    );
