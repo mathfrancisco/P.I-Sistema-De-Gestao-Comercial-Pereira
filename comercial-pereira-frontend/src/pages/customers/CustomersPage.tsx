@@ -18,6 +18,7 @@ import { usePagination } from '../../hooks/usePagination'
 import customerService from '../../services/api/customer.service'
 import type { CustomerResponse } from '../../types/dto/customer.dto'
 import { CustomerType } from '../../types/enums'
+import {CustomerModal} from "../../components/modals/CustomerModal.tsx";
 
 
 export const CustomersPage: React.FC = () => {
