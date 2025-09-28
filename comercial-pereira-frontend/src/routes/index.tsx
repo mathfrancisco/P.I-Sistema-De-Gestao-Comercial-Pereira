@@ -6,6 +6,12 @@ import { Dashboard } from '../pages/dashboard/Dashboard'
 import { SalesPage } from '../pages/sales/SalesPage'
 import { UserRole } from '../types/enums'
 import { ProtectedRoute } from '../components/common/ProtectedRoute'
+import { CustomersPage } from '../pages/customers/CustomersPage'
+import { InventoryPage } from '../pages/inventory/InventoryPage'
+import { ProductsPage } from '../pages/products/ProductsPage'
+import { UsersPage } from '../pages/users/UsersPage'
+import { CategoriesPage } from '../pages/categories/CategoriesPage'
+import { SuppliersPage } from '../pages/suppliers/SuppliersPage'
 
 export const AppRoutes: React.FC = () => {
   return (

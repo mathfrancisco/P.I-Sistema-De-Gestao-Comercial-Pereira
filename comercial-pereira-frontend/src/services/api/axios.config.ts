@@ -1,6 +1,7 @@
-import axios, { AxiosError  } from 'axios'
+import axios, { AxiosError, type AxiosInstance  } from 'axios'
 import { toast } from 'react-hot-toast'
-
+import { API_CONFIG } from '../../config/api.config'
+import { useAuthStore } from '../../store/auth.store'
 
 const api: AxiosInstance = axios.create(API_CONFIG)
 
@@ -61,7 +62,7 @@ api.interceptors.response.use(
         // Handle common errors
         if (error.response) {
             const status = error.response.status
-            const data = error.response.data as any
+            const data = error.response.data as unknown as { message?: string }
 
             switch (status) {
                 case 400:

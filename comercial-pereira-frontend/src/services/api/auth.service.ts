@@ -1,5 +1,6 @@
+import { ENDPOINTS } from '../../config/api.config'
+import type { LoginRequest, LoginResponse } from '../../types/dto/auth.dto'
 import api from './axios.config'
-
 
 class AuthService {
     async login(credentials: LoginRequest): Promise<LoginResponse> {
