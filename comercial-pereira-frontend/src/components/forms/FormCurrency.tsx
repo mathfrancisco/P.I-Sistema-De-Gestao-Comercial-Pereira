@@ -6,7 +6,7 @@ import {
 
 } from '@mui/material'
 import { Controller, type Control, type FieldPath, type FieldValues,  } from 'react-hook-form'
-import { NumericFormat, NumericFormatProps } from 'react-number-format'
+import { NumericFormat, type NumericFormatProps } from 'react-number-format'
 
 interface FormCurrencyProps<T extends FieldValues>
   extends Omit<TextFieldProps, 'name' | 'value' | 'onChange' | 'error' | 'helperText'> {

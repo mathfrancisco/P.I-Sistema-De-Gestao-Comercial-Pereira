@@ -198,9 +198,9 @@ export const UsersPage: React.FC = () => {
         </FormControl>
       </Stack>
       
-      <DataTable
+      <DataTable<UserResponse>
         columns={columns}
-        rows={data?.content as unknown as Record<string, unknown>[] || []}
+        rows={data?.content || []}
         loading={isLoading}
         page={pagination.page}
         rowsPerPage={pagination.size}
@@ -214,22 +214,22 @@ export const UsersPage: React.FC = () => {
           {
             icon: <EditIcon />,
             label: 'Editar',
-            onClick: (row) => handleEdit(row as unknown as UserResponse),
+            onClick: handleEdit,
           },
           {
             icon: <KeyIcon />,
             label: 'Resetar Senha',
-            onClick: (row) => handleResetPassword(row as unknown as UserResponse),
+            onClick: handleResetPassword,
           },
           {
             icon: <BlockIcon />,
             label: 'Bloquear',
-            onClick: (row) => handleBlock(row as unknown as UserResponse),
+            onClick: handleBlock,
             color: 'error',
-            show: (row) => (row as unknown as UserResponse).isActive,
+            show: (row) => row.isActive,
           },
         ]}
-        getRowId={(row) => (row as unknown as UserResponse).id}
+        getRowId={(row) => row.id}
       />
       
       <UserModal

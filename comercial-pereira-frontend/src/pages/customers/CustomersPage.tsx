@@ -74,7 +74,7 @@ export const CustomersPage: React.FC = () => {
     {
       id: 'city',
       label: 'Cidade',
-      format: (value: string, row: CustomerResponse) =>
+      format: (_value: string, row: CustomerResponse) =>
         row.city && row.state ? `${row.city}/${row.state}` : '-',
     },
     {
@@ -102,7 +102,7 @@ export const CustomersPage: React.FC = () => {
       />
       
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <SearchField
             value={search}
             onChange={setSearch}
@@ -110,7 +110,7 @@ export const CustomersPage: React.FC = () => {
           />
         </Grid>
         
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <FormControl fullWidth>
             <InputLabel>Tipo de Cliente</InputLabel>
             <Select
@@ -126,7 +126,7 @@ export const CustomersPage: React.FC = () => {
         </Grid>
       </Grid>
       
-      <DataTable
+      <DataTable<CustomerResponse>
         columns={columns}
         rows={data?.content || []}
         loading={isLoading}

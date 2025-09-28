@@ -4,6 +4,7 @@ import br.com.comercialpereira.dto.category.*;
 import br.com.comercialpereira.entity.Category;
 import br.com.comercialpereira.repository.CategoryRepository;
 import br.com.comercialpereira.exception.ApiException;
+import br.com.comercialpereira.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +30,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryValidationService validationService;
+    private final ProductRepository productRepository;
 
     private static final String CATEGORY_NOT_FOUND = "Categoria não encontrada";
     private static final String CATEGORY_NAME_EXISTS = "Categoria com este nome já existe";
@@ -349,44 +353,57 @@ public class CategoryService {
     @Transactional(readOnly = true)
     public Map<String, Object> getStatistics() {
         try {
+            // Estatísticas básicas
             long total = categoryRepository.count();
             long active = categoryRepository.countByIsActive(true);
             long inactive = total - active;
 
+            // CORRIGIDO: Usar os métodos auxiliares corretamente
+            long withCnae = getCategoriesWithCnaeCount();
+            long withProducts = getCategoriesWithProductsCount();
+
             // Buscar categorias com contagem de produtos
             List<Object[]> categoriesWithProductCount = categoryRepository.findCategoriesWithProductCount();
 
-            Map<String, Long> productsByCategory = categoriesWithProductCount.stream()
-                    .collect(Collectors.toMap(
-                            row -> ((Category) row[0]).getName(),
-                            row -> (Long) row[1]
-                    ));
+            // Processar dados das categorias com produtos
+            Map<String, Long> productsByCategory = new HashMap<>();
+            List<Map<String, Object>> topCategories = new ArrayList<>();
 
-            // Top 10 categorias por número de produtos - corrigindo o tipo
-            List<Map<String, Object>> topCategories = categoriesWithProductCount.stream()
-                    .limit(10)
-                    .map(row -> {
-                        Category category = (Category) row[0];
-                        Long productCount = (Long) row[1];
-                        Map<String, Object> categoryMap = Map.of(
-                                "id", (Object) category.getId(),
-                                "name", (Object) category.getName(),
-                                "productCount", (Object) productCount,
-                                "totalRevenue", (Object) 0L
-                        );
-                        return categoryMap;
-                    })
-                    .collect(Collectors.toList());
+            if (!categoriesWithProductCount.isEmpty()) {
+                // Converter resultado SQL nativo para Map
+                productsByCategory = categoriesWithProductCount.stream()
+                        .filter(row -> row.length >= 8 && row[7] != null)
+                        .collect(Collectors.toMap(
+                                row -> (String) row[1], // name na posição 1
+                                row -> ((Number) row[7]).longValue() // product_count na posição 7
+                        ));
 
-            return Map.of(
-                    "total", total,
-                    "active", active,
-                    "inactive", inactive,
-                    "withCnae", getCategoriesWithCnaeCount(),
-                    "withProducts", getCategoriesWithProductsCount(),
-                    "productsByCategory", productsByCategory,
-                    "topCategories", topCategories
-            );
+                // Top 10 categorias
+                topCategories = categoriesWithProductCount.stream()
+                        .filter(row -> row.length >= 8)
+                        .limit(10)
+                        .map(row -> {
+                            Map<String, Object> categoryMap = new HashMap<>();
+                            categoryMap.put("id", ((Number) row[0]).longValue());
+                            categoryMap.put("name", (String) row[1]);
+                            categoryMap.put("productCount", ((Number) row[7]).longValue());
+                            categoryMap.put("totalRevenue", 0L);
+                            return categoryMap;
+                        })
+                        .collect(Collectors.toList());
+            }
+
+            // Resultado final
+            Map<String, Object> result = new HashMap<>();
+            result.put("total", total);
+            result.put("active", active);
+            result.put("inactive", inactive);
+            result.put("withCnae", withCnae);
+            result.put("withProducts", withProducts);
+            result.put("productsByCategory", productsByCategory);
+            result.put("topCategories", topCategories);
+
+            return result;
 
         } catch (Exception e) {
             log.error("Erro ao obter estatísticas de categorias", e);
@@ -445,27 +462,39 @@ public class CategoryService {
     }
 
     private int getProductCount(Long categoryId) {
-        // TODO: Implementar consulta para contar produtos da categoria
-        // Por enquanto retorna 0, mas deveria fazer:
-        // return productRepository.countByCategoryIdAndIsActive(categoryId, true);
-        return 0;
+        try {
+            return productRepository.findByCategoryIdAndIsActive(categoryId, true).size();
+        } catch (Exception e) {
+            log.warn("Erro ao contar produtos da categoria {}, retornando 0", categoryId, e);
+            return 0;
+        }
     }
 
     private int getActiveProductCount(Long categoryId) {
-        // TODO: Implementar consulta para contar produtos ativos da categoria
-        // return productRepository.countByCategoryIdAndIsActive(categoryId, true);
-        return 0;
+        try {
+            return productRepository.findByCategoryIdAndIsActive(categoryId, true).size();
+        } catch (Exception e) {
+            log.warn("Erro ao contar produtos ativos da categoria {}, retornando 0", categoryId, e);
+            return 0;
+        }
     }
 
     private long getCategoriesWithCnaeCount() {
-        // Contar categorias que têm CNAE
-        return categoryRepository.findByFilters(null, true, true, Pageable.unpaged()).getTotalElements();
+        try {
+            // Usar a query simples do repository
+            return categoryRepository.findCategoriesWithCnae().size();
+        } catch (Exception e) {
+            log.warn("Erro ao contar categorias com CNAE, retornando 0", e);
+            return 0;
+        }
     }
 
     private long getCategoriesWithProductsCount() {
-        // TODO: Implementar consulta para contar categorias que têm produtos
-        // Por enquanto retorna estimativa baseada nos dados de produto
-        return categoryRepository.findCategoriesWithProductCount().size();
+        try {
+            return categoryRepository.countCategoriesWithProducts();
+        } catch (Exception e) {
+            log.warn("Erro ao contar categorias com produtos, retornando 0", e);
+            return 0;
+        }
     }
-
 }

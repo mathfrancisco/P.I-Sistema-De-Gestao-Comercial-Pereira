@@ -171,7 +171,7 @@ export const InventoryPage: React.FC = () => {
       
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {statCards.map((card, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
             <Card>
               <CardContent>
                 <Box display="flex" justifyContent="space-between">
@@ -206,7 +206,7 @@ export const InventoryPage: React.FC = () => {
       
       <TabPanel value={tabValue} index={0}>
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <SearchField
               value={search}
               onChange={setSearch}
@@ -214,7 +214,7 @@ export const InventoryPage: React.FC = () => {
             />
           </Grid>
           
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <FormControl fullWidth>
               <InputLabel>Filtrar por Status</InputLabel>
               <Select
@@ -231,7 +231,7 @@ export const InventoryPage: React.FC = () => {
           </Grid>
         </Grid>
         
-        <DataTable
+        <DataTable<InventoryResponse>
           columns={columns}
           rows={data?.content || []}
           loading={isLoading}

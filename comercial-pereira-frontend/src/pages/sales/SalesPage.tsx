@@ -160,20 +160,20 @@ export const SalesPage: React.FC = () => {
     {
       icon: <ViewIcon />,
       label: "Visualizar",
-      onClick: (row: unknown) => handleViewDetails(row as unknown as SaleResponse),
+      onClick: handleViewDetails,
     },
     {
       icon: <EditIcon />,
       label: "Editar",
-      onClick: (row: unknown) => handleEdit(row as unknown as SaleResponse),
-      show: (row: unknown) => (row as unknown as SaleResponse).status === SaleStatus.PENDING,
+      onClick: handleEdit,
+      show: (row: SaleResponse) => row.status === SaleStatus.PENDING,
     },
     {
       icon: <CancelIcon />,
       label: "Cancelar",
-      onClick: (row: unknown) => handleCancel(row as unknown as SaleResponse),
+      onClick: handleCancel,
       color: "error" as const,
-      show: (row: unknown) => (row as unknown as SaleResponse).status !== SaleStatus.CANCELLED,
+      show: (row: SaleResponse) => row.status !== SaleStatus.CANCELLED,
     },
   ];
 
@@ -231,9 +231,9 @@ export const SalesPage: React.FC = () => {
         </Stack>
       </Box>
 
-      <DataTable
+      <DataTable<SaleResponse>
         columns={columns}
-        rows={data?.content as unknown as Record<string, unknown>[] || []}
+        rows={data?.content || []}
         loading={isLoading}
         error={error?.message}
         page={pagination.page}
@@ -245,7 +245,7 @@ export const SalesPage: React.FC = () => {
         sortBy={pagination.sortBy}
         sortOrder={pagination.sortOrder}
         actions={actions}
-        getRowId={(row) => (row as unknown as SaleResponse).id}
+        getRowId={(row) => row.id}
         emptyMessage="Nenhuma venda encontrada"
       />
 

@@ -80,7 +80,7 @@ export const SaleDetails: React.FC<SaleDetailsProps> = ({
       <DialogContent dividers>
         <Grid container spacing={3}>
           {/* Informações Gerais */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center">
               <Typography variant="subtitle2" color="text.secondary">
                 Status da Venda
@@ -89,21 +89,21 @@ export const SaleDetails: React.FC<SaleDetailsProps> = ({
             </Box>
           </Grid>
           
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">
               Cliente
             </Typography>
             <Typography variant="body1">{sale.customerName}</Typography>
           </Grid>
           
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">
               Vendedor
             </Typography>
             <Typography variant="body1">{sale.userName}</Typography>
           </Grid>
           
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">
               Data da Venda
             </Typography>
@@ -112,7 +112,7 @@ export const SaleDetails: React.FC<SaleDetailsProps> = ({
             </Typography>
           </Grid>
           
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">
               Forma de Pagamento
             </Typography>
@@ -122,7 +122,7 @@ export const SaleDetails: React.FC<SaleDetailsProps> = ({
           </Grid>
           
           {sale.observations && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="subtitle2" color="text.secondary">
                 Observações
               </Typography>
@@ -130,12 +130,12 @@ export const SaleDetails: React.FC<SaleDetailsProps> = ({
             </Grid>
           )}
           
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Divider />
           </Grid>
           
           {/* Itens da Venda */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" gutterBottom>
               Itens da Venda
             </Typography>
@@ -173,7 +173,7 @@ export const SaleDetails: React.FC<SaleDetailsProps> = ({
           </Grid>
           
           {/* Totais */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
               <Box display="flex" gap={4}>
                 <Typography variant="body1">Subtotal:</Typography>

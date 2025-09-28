@@ -11,12 +11,16 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  Link,
 } from '@mui/material'
 import {
   Email as EmailIcon,
   Lock as LockIcon,
   Visibility,
   VisibilityOff,
+  Google as GoogleIcon,
 } from '@mui/icons-material'
 
 import * as yup from 'yup'
@@ -40,6 +44,7 @@ export const Login: React.FC = () => {
   const { login, isAuthenticated, loading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rememberMe, setRememberMe] = useState(false)
   
   const {
     register,
@@ -61,98 +66,483 @@ export const Login: React.FC = () => {
   }
   
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Typography component="h1" variant="h4" color="primary">
-              Comercial Pereira
-            </Typography>
-            <Typography variant="subtitle1" color="textSecondary">
-              Sistema de Gestão
-            </Typography>
-          </Box>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email"
-              autoComplete="email"
-              autoFocus
-              error={!!errors.email}
-              helperText={errors.email?.message}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailIcon />
-                  </InputAdornment>
-                ),
-              }}
-              {...register('email')}
-            />
-            
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              label="Senha"
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              autoComplete="current-password"
-              error={!!errors.password}
-              helperText={errors.password?.message}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockIcon />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              {...register('password')}
-            />
-            
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
+            radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+            radial-gradient(circle at 40% 80%, rgba(255,255,255,0.1) 0%, transparent 50%)
+          `,
+          pointerEvents: 'none',
+        }
+      }}
+    >
+      <Container component="main" maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            borderRadius: '24px',
+            overflow: 'hidden',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            minHeight: '700px',
+          }}
+        >
+          {/* Left Side - Login Form */}
+          <Box
+            sx={{
+              flex: 1,
+              padding: { xs: 4, md: 6 },
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              maxWidth: { md: '500px' },
+            }}
+          >
+            {/* Logo */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 6 }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mr: 2,
+                  boxShadow: '0 8px 32px rgba(79, 70, 229, 0.3)',
+                }}
+              >
+                <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  CP
+                </Typography>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1F2937' }}>
+                Comercial Pereira
+              </Typography>
+            </Box>
+
+            {/* Header */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#1F2937', mb: 2 }}>
+                Entrar
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#6B7280', mb: 4 }}>
+                Sistema de Gestão Comercial
+              </Typography>
+            </Box>
+
+            {/* Google Sign In Button */}
             <Button
-              type="submit"
               fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={isSubmitting || loading}
+              variant="outlined"
+              sx={{
+                mb: 4,
+                py: 1.8,
+                borderColor: '#E5E7EB',
+                color: '#374151',
+                borderRadius: '16px',
+                textTransform: 'none',
+                fontSize: '16px',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                '&:hover': {
+                  borderColor: '#D1D5DB',
+                  backgroundColor: '#F9FAFB',
+                },
+              }}
             >
-              {isSubmitting || loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Entrar'
-              )}
+              <GoogleIcon sx={{ color: '#4285F4' }} />
+              Entrar com Google
             </Button>
+
+            {/* Divider */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
+              <Typography sx={{ px: 3, color: '#9CA3AF', fontSize: '14px', fontWeight: 500 }}>
+                Ou
+              </Typography>
+              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
+            </Box>
+
+            {error && (
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  mb: 3,
+                  borderRadius: '16px',
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  color: '#991B1B',
+                  '& .MuiAlert-icon': {
+                    color: '#DC2626'
+                  }
+                }}
+              >
+                {error}
+              </Alert>
+            )}
+
+            <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
+              {/* Email Field */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 600, color: '#374151' }}>
+                  Email
+                </Typography>
+                <TextField
+                  required
+                  fullWidth
+                  id="email"
+                  placeholder="seuemail@exemplo.com"
+                  autoComplete="email"
+                  autoFocus
+                  error={!!errors.email}
+                  helperText={errors.email?.message}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '16px',
+                      backgroundColor: '#F9FAFB',
+                      fontSize: '16px',
+                      '& fieldset': {
+                        borderColor: '#E5E7EB',
+                        borderWidth: '1px',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#D1D5DB',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#4F46E5',
+                        borderWidth: '2px',
+                      },
+                      '& input': {
+                        py: 1.8,
+                      }
+                    },
+                    '& .MuiFormHelperText-root': {
+                      marginLeft: 0,
+                      fontSize: '14px',
+                    }
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EmailIcon sx={{ color: '#9CA3AF', fontSize: '20px' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  {...register('email')}
+                />
+              </Box>
+
+              {/* Password Field */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 600, color: '#374151' }}>
+                  Senha
+                </Typography>
+                <TextField
+                  required
+                  fullWidth
+                  placeholder="Digite sua senha"
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  autoComplete="current-password"
+                  error={!!errors.password}
+                  helperText={errors.password?.message}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '16px',
+                      backgroundColor: '#F9FAFB',
+                      fontSize: '16px',
+                      '& fieldset': {
+                        borderColor: '#E5E7EB',
+                        borderWidth: '1px',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#D1D5DB',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#4F46E5',
+                        borderWidth: '2px',
+                      },
+                      '& input': {
+                        py: 1.8,
+                      }
+                    },
+                    '& .MuiFormHelperText-root': {
+                      marginLeft: 0,
+                      fontSize: '14px',
+                    }
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockIcon sx={{ color: '#9CA3AF', fontSize: '20px' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          sx={{ color: '#9CA3AF' }}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  {...register('password')}
+                />
+              </Box>
+
+              {/* Remember Me & Forgot Password */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      sx={{
+                        color: '#9CA3AF',
+                        '&.Mui-checked': {
+                          color: '#4F46E5',
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                      Lembrar-me
+                    </Typography>
+                  }
+                />
+                <Link
+                  href="#"
+                  variant="body2"
+                  sx={{
+                    color: '#4F46E5',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                >
+                  Esqueceu a senha?
+                </Link>
+              </Box>
+
+              {/* Sign In Button */}
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={isSubmitting || loading}
+                sx={{
+                  py: 2,
+                  mb: 4,
+                  background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  borderRadius: '16px',
+                  textTransform: 'none',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  boxShadow: '0 10px 25px rgba(79, 70, 229, 0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)',
+                    boxShadow: '0 15px 35px rgba(79, 70, 229, 0.4)',
+                    transform: 'translateY(-1px)',
+                  },
+                  '&:disabled': {
+                    background: '#E5E7EB',
+                    boxShadow: 'none',
+                    transform: 'none',
+                  },
+                  transition: 'all 0.2s ease-in-out',
+                }}
+              >
+                {isSubmitting || loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Entrar'
+                )}
+              </Button>
+
+              {/* Sign Up Link */}
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                  Não tem uma conta?{' '}
+                  <Link
+                    href="#"
+                    sx={{
+                      color: '#4F46E5',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
+                    }}
+                  >
+                    Cadastre-se
+                  </Link>
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Right Side - Dashboard Preview */}
+          <Box
+            sx={{
+              flex: 1,
+              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%)',
+              display: { xs: 'none', md: 'flex' },
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              color: 'white',
+              position: 'relative',
+              p: 6,
+              minWidth: '500px',
+            }}
+          >
+            {/* Background Geometric Shapes */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '10%',
+                right: '10%',
+                width: '120px',
+                height: '120px',
+                borderRadius: '20px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                transform: 'rotate(45deg)',
+                backdropFilter: 'blur(10px)',
+              }}
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: '15%',
+                left: '15%',
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+              }}
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '60%',
+                right: '20%',
+                width: '60px',
+                height: '60px',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                transform: 'rotate(30deg)',
+                backdropFilter: 'blur(10px)',
+              }}
+            />
+            
+            {/* Content */}
+            <Box sx={{ textAlign: 'center', zIndex: 1, maxWidth: '400px' }}>
+              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 3, lineHeight: 1.2 }}>
+                Sistema de Gestão Completo para Seu Negócio
+              </Typography>
+              <Typography variant="h6" sx={{ mb: 6, opacity: 0.9, lineHeight: 1.5 }}>
+                Simplifique tarefas complexas, acompanhe métricas importantes 
+                e tome decisões inteligentes sem esforço
+              </Typography>
+              
+              {/* Feature Cards */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 6 }}>
+                {[
+                  { 
+                    icon: '📊', 
+                    title: 'Dashboard Intuitivo', 
+                    desc: 'Visualize todas as métricas importantes em tempo real'
+                  },
+                  { 
+                    icon: '💼', 
+                    title: 'Gestão Integrada', 
+                    desc: 'Controle vendas, estoque e clientes em um só lugar'
+                  },
+                  { 
+                    icon: '📈', 
+                    title: 'Relatórios Inteligentes', 
+                    desc: 'Insights avançados para impulsionar seu crescimento'
+                  },
+                ].map((feature, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '16px',
+                      p: 3,
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      transition: 'transform 0.2s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateX(5px)',
+                      }
+                    }}
+                  >
+                    <Typography variant="h4" sx={{ mr: 3, minWidth: '50px' }}>
+                      {feature.icon}
+                    </Typography>
+                    <Box sx={{ textAlign: 'left' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                        {feature.title}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9, lineHeight: 1.4 }}>
+                        {feature.desc}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Progress Indicator */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+                {[0, 1, 2].map((dot, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      width: index === 1 ? 32 : 12,
+                      height: 12,
+                      borderRadius: '6px',
+                      backgroundColor: index === 1 ? 'white' : 'rgba(255, 255, 255, 0.4)',
+                      transition: 'all 0.3s ease',
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
           </Box>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   )
 }

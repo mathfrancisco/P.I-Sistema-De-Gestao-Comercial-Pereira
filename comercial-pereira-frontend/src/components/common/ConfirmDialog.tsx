@@ -4,7 +4,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText,
   Button,
   IconButton,
   Box,
@@ -18,7 +17,8 @@ import {
   CheckCircle as SuccessIcon,
 } from '@mui/icons-material'
 
-interface ConfirmDialogProps {
+
+export const ConfirmDialog: React.FC<{
   open: boolean
   title: string
   message: string
@@ -28,9 +28,7 @@ interface ConfirmDialogProps {
   onConfirm: () => void
   onCancel: () => void
   loading?: boolean
-}
-
-export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+}> = ({
   open,
   title,
   message,
@@ -42,46 +40,125 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   loading = false,
 }) => {
   const icons = {
-    warning: <WarningIcon color="warning" fontSize="large" />,
-    error: <ErrorIcon color="error" fontSize="large" />,
-    info: <InfoIcon color="info" fontSize="large" />,
-    success: <SuccessIcon color="success" fontSize="large" />,
+    warning: <WarningIcon sx={{ color: '#F59E0B', fontSize: 48 }} />,
+    error: <ErrorIcon sx={{ color: '#EF4444', fontSize: 48 }} />,
+    info: <InfoIcon sx={{ color: '#3B82F6', fontSize: 48 }} />,
+    success: <SuccessIcon sx={{ color: '#10B981', fontSize: 48 }} />,
   }
 
   const confirmColors = {
-    warning: 'warning' as const,
-    error: 'error' as const,
-    info: 'primary' as const,
-    success: 'success' as const,
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#4F46E5',
+    success: '#10B981',
+  }
+
+  const backgroundColors = {
+    warning: '#FFFBEB',
+    error: '#FEF2F2',
+    info: '#F0F4FF',
+    success: '#ECFDF5',
   }
 
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box display="flex" alignItems="center" gap={1}>
+    <Dialog 
+      open={open} 
+      onClose={onCancel} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: '16px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+        }
+      }}
+    >
+      <DialogTitle sx={{ textAlign: 'center', pt: 4, pb: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Box
+            sx={{
+              width: 80,
+              height: 80,
+              backgroundColor: backgroundColors[type],
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             {icons[type]}
-            <Typography variant="h6">{title}</Typography>
           </Box>
-          <IconButton onClick={onCancel} disabled={loading}>
-            <CloseIcon />
-          </IconButton>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1E293B' }}>
+            {title}
+          </Typography>
         </Box>
+        <IconButton
+          onClick={onCancel}
+          disabled={loading}
+          sx={{ 
+            position: 'absolute', 
+            right: 8, 
+            top: 8,
+            color: '#64748B',
+            '&:hover': {
+              backgroundColor: '#F1F5F9',
+            }
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
       
-      <DialogContent>
-        <DialogContentText>{message}</DialogContentText>
+      <DialogContent sx={{ textAlign: 'center', pb: 2 }}>
+        <Typography variant="body1" sx={{ color: '#64748B', lineHeight: 1.6 }}>
+          {message}
+        </Typography>
       </DialogContent>
       
-      <DialogActions>
-        <Button onClick={onCancel} disabled={loading}>
+      <DialogActions sx={{ p: 3, gap: 2, justifyContent: 'center' }}>
+        <Button 
+          onClick={onCancel} 
+          disabled={loading}
+          sx={{
+            borderRadius: '12px',
+            textTransform: 'none',
+            color: '#64748B',
+            fontWeight: 600,
+            px: 4,
+            py: 1.5,
+            border: '1px solid #E2E8F0',
+            '&:hover': {
+              backgroundColor: '#F8FAFC',
+              borderColor: '#CBD5E1',
+            }
+          }}
+        >
           {cancelText}
         </Button>
         <Button
           onClick={onConfirm}
-          color={confirmColors[type]}
           variant="contained"
           disabled={loading}
+          sx={{
+            borderRadius: '12px',
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 4,
+            py: 1.5,
+            backgroundColor: confirmColors[type],
+            boxShadow: `0 4px 15px ${confirmColors[type]}40`,
+            '&:hover': {
+              backgroundColor: confirmColors[type],
+              boxShadow: `0 6px 20px ${confirmColors[type]}60`,
+              transform: 'translateY(-1px)',
+            },
+            '&:disabled': {
+              backgroundColor: '#E2E8F0',
+              boxShadow: 'none',
+              transform: 'none',
+            },
+            transition: 'all 0.2s ease-in-out',
+          }}
         >
           {confirmText}
         </Button>

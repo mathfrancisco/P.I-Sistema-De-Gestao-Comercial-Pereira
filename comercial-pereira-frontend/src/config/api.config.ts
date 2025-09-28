@@ -27,7 +27,7 @@ export const ENDPOINTS = {
 
     // Sales
     sales: {
-        base: '/v1/sales',
+        base: '/sales',
         byId: (id: number) => `/v1/sales/${id}`,
         cancel: (id: number) => `/v1/sales/${id}/cancel`,
         items: (saleId: number) => `/v1/sales/${saleId}/items`,

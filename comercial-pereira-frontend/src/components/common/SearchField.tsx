@@ -2,26 +2,26 @@ import React from 'react'
 import {
   TextField,
   InputAdornment,
-  IconButton,
-  type TextFieldProps
+  IconButton
 } from '@mui/material'
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
 } from '@mui/icons-material'
 
-interface SearchFieldProps extends Omit<TextFieldProps, 'onChange'> {
+
+export const SearchField: React.FC<{
   value: string
   onChange: (value: string) => void
   onClear?: () => void
   placeholder?: string
-}
-
-export const SearchField: React.FC<SearchFieldProps> = ({
+  sx?: any
+}> = ({
   value,
   onChange,
   onClear,
   placeholder = 'Buscar...',
+  sx,
   ...props
 }) => {
   const handleClear = () => {
@@ -35,15 +35,41 @@ export const SearchField: React.FC<SearchFieldProps> = ({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          borderRadius: '12px',
+          backgroundColor: '#F8FAFC',
+          '& fieldset': {
+            borderColor: '#E2E8F0',
+          },
+          '&:hover fieldset': {
+            borderColor: '#CBD5E1',
+          },
+          '&.Mui-focused fieldset': {
+            borderColor: '#4F46E5',
+            borderWidth: '2px',
+          },
+        },
+        ...sx,
+      }}
       InputProps={{
         startAdornment: (
           <InputAdornment position="start">
-            <SearchIcon />
+            <SearchIcon sx={{ color: '#9CA3AF' }} />
           </InputAdornment>
         ),
         endAdornment: value && (
           <InputAdornment position="end">
-            <IconButton size="small" onClick={handleClear}>
+            <IconButton 
+              size="small" 
+              onClick={handleClear}
+              sx={{
+                color: '#9CA3AF',
+                '&:hover': {
+                  backgroundColor: '#F1F5F9',
+                }
+              }}
+            >
               <ClearIcon />
             </IconButton>
           </InputAdornment>

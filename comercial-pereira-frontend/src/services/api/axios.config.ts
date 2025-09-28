@@ -14,11 +14,11 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`
         }
 
-        // Add User-ID header if required
-        const userId = useAuthStore.getState().user?.id
-        if (userId) {
-            config.headers['User-ID'] = userId.toString()
-        }
+        // REMOVIDO: User-ID header (agora o backend extrai do JWT)
+        // const userId = useAuthStore.getState().user?.id
+        // if (userId) {
+        //     config.headers['User-ID'] = userId.toString()
+        // }
 
         return config
     },

@@ -7,11 +7,12 @@ import {
   Button,
   Grid,
   IconButton,
+  Box,
+  Typography,
 } from '@mui/material'
 import { Close as CloseIcon } from '@mui/icons-material'
 import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-hot-toast'
 import { FormTextField } from '../forms/FormTextField'
@@ -23,32 +24,16 @@ import type {
   ProductResponse,
   UpdateProductRequest,
 } from '../../types/dto/product.dto'
-import categoryService from '../../services/category.service'
-import supplierService from '../../services/supplier.service'
 import productService from '../../services/api/product.service'
+import categoryService from '../../services/api/category.service'
+import supplierService from '../../services/api/supplier.service'
 
 
-
-const productSchema = yup.object({
-  code: yup.string().required('Código é obrigatório'),
-  name: yup.string().required('Nome é obrigatório'),
-  description: yup.string(),
-  barcode: yup.string(),
-  unitPrice: yup.number().required('Preço é obrigatório').min(0.01),
-  costPrice: yup.number().min(0),
-  categoryId: yup.number().required('Categoria é obrigatória'),
-  supplierId: yup.number().required('Fornecedor é obrigatório'),
-  unit: yup.string().required('Unidade é obrigatória'),
-  isActive: yup.boolean(),
-})
-
-interface ProductModalProps {
+export const ProductModal: React.FC<{
   open: boolean
   onClose: () => void
   product?: ProductResponse | null
-}
-
-export const ProductModal: React.FC<ProductModalProps> = ({
+}> = ({
   open,
   onClose,
   product,
@@ -56,8 +41,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const queryClient = useQueryClient()
   const isEditMode = !!product
   
-  const { control, handleSubmit, reset, formState: { errors } } = useForm({
-    resolver: yupResolver(productSchema),
+  const { control, handleSubmit, reset } = useForm({
     defaultValues: {
       code: '',
       name: '',
@@ -163,117 +147,233 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   ]
   
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="md" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: '16px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+        }
+      }}
+    >
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>
-          {isEditMode ? 'Editar Produto' : 'Novo Produto'}
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: 'absolute', right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
+        <DialogTitle
+          sx={{
+            borderBottom: '1px solid #E2E8F0',
+            backgroundColor: '#F8FAFC',
+            borderRadius: '16px 16px 0 0',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1E293B' }}>
+              {isEditMode ? 'Editar Produto' : 'Novo Produto'}
+            </Typography>
+            <IconButton
+              onClick={handleClose}
+              sx={{
+                color: '#64748B',
+                '&:hover': {
+                  backgroundColor: '#E2E8F0',
+                }
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </DialogTitle>
         
-        <DialogContent dividers>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormTextField
                 name="code"
                 control={control}
                 label="Código"
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <FormTextField
                 name="name"
                 control={control}
                 label="Nome do Produto"
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormTextField
                 name="description"
                 control={control}
                 label="Descrição"
                 multiline
                 rows={3}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormTextField
                 name="barcode"
                 control={control}
                 label="Código de Barras"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormSelect
                 name="unit"
                 control={control}
                 label="Unidade"
                 options={unitOptions}
                 emptyOption={false}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormCurrency
                 name="costPrice"
                 control={control}
                 label="Preço de Custo"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormCurrency
                 name="unitPrice"
                 control={control}
                 label="Preço de Venda"
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormSelect
                 name="categoryId"
                 control={control}
                 label="Categoria"
                 options={categoryOptions}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormSelect
                 name="supplierId"
                 control={control}
                 label="Fornecedor"
                 options={supplierOptions}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                  }
+                }}
               />
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormSwitch
                 name="isActive"
                 control={control}
                 label="Produto Ativo"
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: '#4F46E5',
+                    '& + .MuiSwitch-track': {
+                      backgroundColor: '#4F46E5',
+                    },
+                  },
+                }}
               />
             </Grid>
           </Grid>
         </DialogContent>
         
-        <DialogActions>
-          <Button onClick={handleClose}>Cancelar</Button>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+          <Button 
+            onClick={handleClose}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              color: '#64748B',
+              fontWeight: 500,
+              '&:hover': {
+                backgroundColor: '#F1F5F9',
+              }
+            }}
+          >
+            Cancelar
+          </Button>
           <Button
             type="submit"
             variant="contained"
             disabled={createMutation.isPending || updateMutation.isPending}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+              boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)',
+                boxShadow: '0 6px 20px rgba(79, 70, 229, 0.4)',
+              },
+              '&:disabled': {
+                background: '#E2E8F0',
+                boxShadow: 'none',
+              },
+            }}
           >
             {isEditMode ? 'Atualizar' : 'Criar'}
           </Button>

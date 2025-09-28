@@ -84,7 +84,7 @@ export const SuppliersPage: React.FC = () => {
     { id: 'name', label: 'Nome / Razão Social' },
     { id: 'contactPerson', label: 'Contato' },
     { id: 'phone', label: 'Telefone' },
-    { id: 'city', label: 'Cidade', format: (value: any, row: any) => `${row.city || ''}/${row.state || ''}` },
+    { id: 'city', label: 'Cidade', format: (_: any, row: any) => `${row.city || ''}/${row.state || ''}` },
     {
       id: 'isActive',
       label: 'Status',
