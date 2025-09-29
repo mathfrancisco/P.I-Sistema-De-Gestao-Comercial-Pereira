@@ -2,11 +2,7 @@ import React from 'react'
 import {
   Box,
   Typography,
-  Breadcrumbs,
-  Link,
-  Stack,
 } from '@mui/material'
-import { NavigateNext as NavigateNextIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 
 interface BreadcrumbItem {
@@ -30,7 +26,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ p: 3, pb: 0 }}>
+    <Box 
+      sx={{ 
+        p: 3, 
+        pb: 0,
+        backgroundColor: '#FAFBFF',
+        borderBottom: '1px solid #E3F2FD',
+      }}
+    >
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -40,16 +43,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               return (
                 <React.Fragment key={index}>
                   {index > 0 && (
-                    <Typography sx={{ mx: 1, color: '#CBD5E1' }}>
+                    <Typography sx={{ mx: 1, color: '#94A3B8' }}>
                       /
                     </Typography>
                   )}
                   {isLast || !item.path ? (
                     <Typography 
                       sx={{ 
-                        color: '#1E293B', 
+                        color: '#1E40AF', 
                         fontSize: '14px',
-                        fontWeight: 500
+                        fontWeight: 600
                       }}
                     >
                       {item.label}
@@ -66,9 +69,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                         background: 'none',
                         cursor: 'pointer',
                         textDecoration: 'none',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
                         '&:hover': {
-                          color: '#4F46E5',
-                          textDecoration: 'underline',
+                          color: '#3B82F6',
+                          backgroundColor: '#EBF8FF',
                         }
                       }}
                     >
@@ -96,9 +101,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             variant="h4" 
             component="h1"
             sx={{
-              fontWeight: 'bold',
+              fontWeight: 700,
               color: '#1E293B',
-              fontSize: { xs: '24px', sm: '32px' }
+              fontSize: { xs: '24px', sm: '32px' },
+              background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
             }}
           >
             {title}

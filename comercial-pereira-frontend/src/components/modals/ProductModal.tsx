@@ -28,7 +28,6 @@ import productService from '../../services/api/product.service'
 import categoryService from '../../services/api/category.service'
 import supplierService from '../../services/api/supplier.service'
 
-
 export const ProductModal: React.FC<{
   open: boolean
   onClose: () => void
@@ -154,21 +153,33 @@ export const ProductModal: React.FC<{
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: '16px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+          borderRadius: '20px',
+          boxShadow: '0 25px 80px rgba(59, 130, 246, 0.15)',
+          background: 'white',
+          overflow: 'hidden',
         }
       }}
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogTitle
           sx={{
-            borderBottom: '1px solid #E2E8F0',
-            backgroundColor: '#F8FAFC',
-            borderRadius: '16px 16px 0 0',
+            borderBottom: '1px solid #E3F2FD',
+            backgroundColor: '#FAFBFF',
+            p: 3,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1E293B' }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#1E293B',
+                background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
               {isEditMode ? 'Editar Produto' : 'Novo Produto'}
             </Typography>
             <IconButton
@@ -176,7 +187,8 @@ export const ProductModal: React.FC<{
               sx={{
                 color: '#64748B',
                 '&:hover': {
-                  backgroundColor: '#E2E8F0',
+                  backgroundColor: '#EBF8FF',
+                  color: '#3B82F6',
                 }
               }}
             >
@@ -185,7 +197,7 @@ export const ProductModal: React.FC<{
           </Box>
         </DialogTitle>
         
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ p: 3, backgroundColor: 'white' }}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 4 }}>
               <FormTextField
@@ -193,12 +205,6 @@ export const ProductModal: React.FC<{
                 control={control}
                 label="Código"
                 required
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -208,12 +214,6 @@ export const ProductModal: React.FC<{
                 control={control}
                 label="Nome do Produto"
                 required
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -224,12 +224,6 @@ export const ProductModal: React.FC<{
                 label="Descrição"
                 multiline
                 rows={3}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -238,12 +232,6 @@ export const ProductModal: React.FC<{
                 name="barcode"
                 control={control}
                 label="Código de Barras"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -254,12 +242,6 @@ export const ProductModal: React.FC<{
                 label="Unidade"
                 options={unitOptions}
                 emptyOption={false}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -268,12 +250,6 @@ export const ProductModal: React.FC<{
                 name="costPrice"
                 control={control}
                 label="Preço de Custo"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -283,12 +259,6 @@ export const ProductModal: React.FC<{
                 control={control}
                 label="Preço de Venda"
                 required
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -298,12 +268,6 @@ export const ProductModal: React.FC<{
                 control={control}
                 label="Categoria"
                 options={categoryOptions}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -313,12 +277,6 @@ export const ProductModal: React.FC<{
                 control={control}
                 label="Fornecedor"
                 options={supplierOptions}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    backgroundColor: '#F8FAFC',
-                  }
-                }}
               />
             </Grid>
             
@@ -327,29 +285,33 @@ export const ProductModal: React.FC<{
                 name="isActive"
                 control={control}
                 label="Produto Ativo"
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': {
-                    color: '#4F46E5',
-                    '& + .MuiSwitch-track': {
-                      backgroundColor: '#4F46E5',
-                    },
-                  },
-                }}
               />
             </Grid>
           </Grid>
         </DialogContent>
         
-        <DialogActions sx={{ p: 3, borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+        <DialogActions 
+          sx={{ 
+            p: 3, 
+            borderTop: '1px solid #E3F2FD', 
+            backgroundColor: '#FAFBFF',
+            gap: 2,
+          }}
+        >
           <Button 
             onClick={handleClose}
             sx={{
               borderRadius: '12px',
               textTransform: 'none',
               color: '#64748B',
-              fontWeight: 500,
+              fontWeight: 600,
+              px: 4,
+              py: 1.5,
+              border: '2px solid #E2E8F0',
               '&:hover': {
-                backgroundColor: '#F1F5F9',
+                backgroundColor: '#F8FAFC',
+                borderColor: '#CBD5E1',
+                color: '#475569',
               }
             }}
           >
@@ -363,16 +325,21 @@ export const ProductModal: React.FC<{
               borderRadius: '12px',
               textTransform: 'none',
               fontWeight: 600,
-              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-              boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)',
+              px: 4,
+              py: 1.5,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
               '&:hover': {
-                background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)',
-                boxShadow: '0 6px 20px rgba(79, 70, 229, 0.4)',
+                background: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
+                boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)',
+                transform: 'translateY(-1px)',
               },
               '&:disabled': {
                 background: '#E2E8F0',
                 boxShadow: 'none',
+                transform: 'none',
               },
+              transition: 'all 0.2s ease-in-out',
             }}
           >
             {isEditMode ? 'Atualizar' : 'Criar'}

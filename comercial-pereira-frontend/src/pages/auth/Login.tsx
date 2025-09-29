@@ -69,7 +69,7 @@ export const Login: React.FC = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%)',
+        background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -99,9 +99,9 @@ export const Login: React.FC = () => {
             flexDirection: { xs: 'column', md: 'row' },
             borderRadius: '24px',
             overflow: 'hidden',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backgroundColor: 'white',
             backdropFilter: 'blur(20px)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            boxShadow: '0 25px 80px rgba(59, 130, 246, 0.25)',
             minHeight: '700px',
           }}
         >
@@ -114,6 +114,7 @@ export const Login: React.FC = () => {
               flexDirection: 'column',
               justifyContent: 'center',
               maxWidth: { md: '500px' },
+              backgroundColor: 'white',
             }}
           >
             {/* Logo */}
@@ -122,30 +123,41 @@ export const Login: React.FC = () => {
                 sx={{
                   width: 48,
                   height: 48,
-                  background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
                   borderRadius: '16px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   mr: 2,
-                  boxShadow: '0 8px 32px rgba(79, 70, 229, 0.3)',
+                  boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
                 }}
               >
                 <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
                   CP
                 </Typography>
               </Box>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1F2937' }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1E293B' }}>
                 Comercial Pereira
               </Typography>
             </Box>
 
             {/* Header */}
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#1F2937', mb: 2 }}>
+              <Typography 
+                variant="h3" 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  color: '#1E293B', 
+                  mb: 2,
+                  background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
                 Entrar
               </Typography>
-              <Typography variant="body1" sx={{ color: '#6B7280', mb: 4 }}>
+              <Typography variant="body1" sx={{ color: '#64748B', mb: 4 }}>
                 Sistema de Gestão Comercial
               </Typography>
             </Box>
@@ -157,8 +169,8 @@ export const Login: React.FC = () => {
               sx={{
                 mb: 4,
                 py: 1.8,
-                borderColor: '#E5E7EB',
-                color: '#374151',
+                borderColor: '#E3F2FD',
+                color: '#64748B',
                 borderRadius: '16px',
                 textTransform: 'none',
                 fontSize: '16px',
@@ -167,22 +179,22 @@ export const Login: React.FC = () => {
                 alignItems: 'center',
                 gap: 2,
                 '&:hover': {
-                  borderColor: '#D1D5DB',
-                  backgroundColor: '#F9FAFB',
+                  borderColor: '#93C5FD',
+                  backgroundColor: '#F8FAFC',
                 },
               }}
             >
-              <GoogleIcon sx={{ color: '#4285F4' }} />
+              <GoogleIcon sx={{ color: '#3B82F6' }} />
               Entrar com Google
             </Button>
 
             {/* Divider */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
-              <Typography sx={{ px: 3, color: '#9CA3AF', fontSize: '14px', fontWeight: 500 }}>
+              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#E3F2FD' }} />
+              <Typography sx={{ px: 3, color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>
                 Ou
               </Typography>
-              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
+              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#E3F2FD' }} />
             </Box>
 
             {error && (
@@ -206,7 +218,7 @@ export const Login: React.FC = () => {
             <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
               {/* Email Field */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 600, color: '#374151' }}>
+                <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 600, color: '#1E293B' }}>
                   Email
                 </Typography>
                 <TextField
@@ -221,32 +233,36 @@ export const Login: React.FC = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '16px',
-                      backgroundColor: '#F9FAFB',
+                      backgroundColor: '#F8FAFC',
                       fontSize: '16px',
                       '& fieldset': {
-                        borderColor: '#E5E7EB',
+                        borderColor: '#E3F2FD',
                         borderWidth: '1px',
                       },
                       '&:hover fieldset': {
-                        borderColor: '#D1D5DB',
+                        borderColor: '#93C5FD',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#4F46E5',
+                        borderColor: '#3B82F6',
                         borderWidth: '2px',
+                        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
                       },
                       '& input': {
                         py: 1.8,
+                        color: '#1E293B',
+                        fontWeight: 500,
                       }
                     },
                     '& .MuiFormHelperText-root': {
                       marginLeft: 0,
                       fontSize: '14px',
+                      fontWeight: 500,
                     }
                   }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <EmailIcon sx={{ color: '#9CA3AF', fontSize: '20px' }} />
+                        <EmailIcon sx={{ color: '#60A5FA', fontSize: '20px' }} />
                       </InputAdornment>
                     ),
                   }}
@@ -256,7 +272,7 @@ export const Login: React.FC = () => {
 
               {/* Password Field */}
               <Box sx={{ mb: 4 }}>
-                <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 600, color: '#374151' }}>
+                <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 600, color: '#1E293B' }}>
                   Senha
                 </Typography>
                 <TextField
@@ -271,32 +287,36 @@ export const Login: React.FC = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '16px',
-                      backgroundColor: '#F9FAFB',
+                      backgroundColor: '#F8FAFC',
                       fontSize: '16px',
                       '& fieldset': {
-                        borderColor: '#E5E7EB',
+                        borderColor: '#E3F2FD',
                         borderWidth: '1px',
                       },
                       '&:hover fieldset': {
-                        borderColor: '#D1D5DB',
+                        borderColor: '#93C5FD',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#4F46E5',
+                        borderColor: '#3B82F6',
                         borderWidth: '2px',
+                        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
                       },
                       '& input': {
                         py: 1.8,
+                        color: '#1E293B',
+                        fontWeight: 500,
                       }
                     },
                     '& .MuiFormHelperText-root': {
                       marginLeft: 0,
                       fontSize: '14px',
+                      fontWeight: 500,
                     }
                   }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <LockIcon sx={{ color: '#9CA3AF', fontSize: '20px' }} />
+                        <LockIcon sx={{ color: '#60A5FA', fontSize: '20px' }} />
                       </InputAdornment>
                     ),
                     endAdornment: (
@@ -304,7 +324,7 @@ export const Login: React.FC = () => {
                         <IconButton
                           onClick={() => setShowPassword(!showPassword)}
                           edge="end"
-                          sx={{ color: '#9CA3AF' }}
+                          sx={{ color: '#94A3B8' }}
                         >
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
@@ -323,15 +343,15 @@ export const Login: React.FC = () => {
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
                       sx={{
-                        color: '#9CA3AF',
+                        color: '#94A3B8',
                         '&.Mui-checked': {
-                          color: '#4F46E5',
+                          color: '#3B82F6',
                         },
                       }}
                     />
                   }
                   label={
-                    <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }}>
                       Lembrar-me
                     </Typography>
                   }
@@ -340,7 +360,7 @@ export const Login: React.FC = () => {
                   href="#"
                   variant="body2"
                   sx={{
-                    color: '#4F46E5',
+                    color: '#3B82F6',
                     textDecoration: 'none',
                     fontWeight: 600,
                     '&:hover': {
@@ -361,15 +381,15 @@ export const Login: React.FC = () => {
                 sx={{
                   py: 2,
                   mb: 4,
-                  background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
                   borderRadius: '16px',
                   textTransform: 'none',
                   fontSize: '16px',
                   fontWeight: 600,
-                  boxShadow: '0 10px 25px rgba(79, 70, 229, 0.3)',
+                  boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)',
-                    boxShadow: '0 15px 35px rgba(79, 70, 229, 0.4)',
+                    background: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
+                    boxShadow: '0 15px 35px rgba(59, 130, 246, 0.4)',
                     transform: 'translateY(-1px)',
                   },
                   '&:disabled': {
@@ -389,12 +409,12 @@ export const Login: React.FC = () => {
 
               {/* Sign Up Link */}
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                <Typography variant="body2" sx={{ color: '#64748B' }}>
                   Não tem uma conta?{' '}
                   <Link
                     href="#"
                     sx={{
-                      color: '#4F46E5',
+                      color: '#3B82F6',
                       textDecoration: 'none',
                       fontWeight: 600,
                       '&:hover': {
@@ -413,7 +433,7 @@ export const Login: React.FC = () => {
           <Box
             sx={{
               flex: 1,
-              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%)',
+              background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
               display: { xs: 'none', md: 'flex' },
               flexDirection: 'column',
               justifyContent: 'center',

@@ -8,29 +8,149 @@ interface StatusChipProps extends Omit<ChipProps, 'color'> {
 
 const statusConfigs = {
   sale: {
-    PENDING: { label: 'Pendente', color: 'warning' as const },
-    COMPLETED: { label: 'Concluída', color: 'success' as const },
-    CANCELLED: { label: 'Cancelada', color: 'error' as const },
+    PENDING: { 
+      label: 'Pendente', 
+      sx: { 
+        backgroundColor: '#FEF3C7', 
+        color: '#92400E',
+        fontWeight: 600,
+        border: '1px solid #F59E0B'
+      } 
+    },
+    COMPLETED: { 
+      label: 'Concluída', 
+      sx: { 
+        backgroundColor: '#D1FAE5', 
+        color: '#065F46',
+        fontWeight: 600,
+        border: '1px solid #10B981'
+      } 
+    },
+    CANCELLED: { 
+      label: 'Cancelada', 
+      sx: { 
+        backgroundColor: '#FEE2E2', 
+        color: '#991B1B',
+        fontWeight: 600,
+        border: '1px solid #EF4444'
+      } 
+    },
   },
   inventory: {
-    OK: { label: 'Normal', color: 'success' as const },
-    LOW: { label: 'Baixo', color: 'warning' as const },
-    OUT_OF_STOCK: { label: 'Sem Estoque', color: 'error' as const },
-    EXCESS: { label: 'Excesso', color: 'info' as const },
+    OK: { 
+      label: 'Normal', 
+      sx: { 
+        backgroundColor: '#D1FAE5', 
+        color: '#065F46',
+        fontWeight: 600,
+        border: '1px solid #10B981'
+      } 
+    },
+    LOW: { 
+      label: 'Baixo', 
+      sx: { 
+        backgroundColor: '#FEF3C7', 
+        color: '#92400E',
+        fontWeight: 600,
+        border: '1px solid #F59E0B'
+      } 
+    },
+    OUT_OF_STOCK: { 
+      label: 'Sem Estoque', 
+      sx: { 
+        backgroundColor: '#FEE2E2', 
+        color: '#991B1B',
+        fontWeight: 600,
+        border: '1px solid #EF4444'
+      } 
+    },
+    EXCESS: { 
+      label: 'Excesso', 
+      sx: { 
+        backgroundColor: '#DBEAFE', 
+        color: '#1E40AF',
+        fontWeight: 600,
+        border: '1px solid #3B82F6'
+      } 
+    },
   },
   user: {
-    ACTIVE: { label: 'Ativo', color: 'success' as const },
-    INACTIVE: { label: 'Inativo', color: 'default' as const },
-    BLOCKED: { label: 'Bloqueado', color: 'error' as const },
+    ACTIVE: { 
+      label: 'Ativo', 
+      sx: { 
+        backgroundColor: '#D1FAE5', 
+        color: '#065F46',
+        fontWeight: 600,
+        border: '1px solid #10B981'
+      } 
+    },
+    INACTIVE: { 
+      label: 'Inativo', 
+      sx: { 
+        backgroundColor: '#F1F5F9', 
+        color: '#475569',
+        fontWeight: 600,
+        border: '1px solid #94A3B8'
+      } 
+    },
+    BLOCKED: { 
+      label: 'Bloqueado', 
+      sx: { 
+        backgroundColor: '#FEE2E2', 
+        color: '#991B1B',
+        fontWeight: 600,
+        border: '1px solid #EF4444'
+      } 
+    },
   },
   product: {
-    ACTIVE: { label: 'Ativo', color: 'success' as const },
-    INACTIVE: { label: 'Inativo', color: 'default' as const },
-    DISCONTINUED: { label: 'Descontinuado', color: 'error' as const },
+    ACTIVE: { 
+      label: 'Ativo', 
+      sx: { 
+        backgroundColor: '#D1FAE5', 
+        color: '#065F46',
+        fontWeight: 600,
+        border: '1px solid #10B981'
+      } 
+    },
+    INACTIVE: { 
+      label: 'Inativo', 
+      sx: { 
+        backgroundColor: '#F1F5F9', 
+        color: '#475569',
+        fontWeight: 600,
+        border: '1px solid #94A3B8'
+      } 
+    },
+    DISCONTINUED: { 
+      label: 'Descontinuado', 
+      sx: { 
+        backgroundColor: '#FEE2E2', 
+        color: '#991B1B',
+        fontWeight: 600,
+        border: '1px solid #EF4444'
+      } 
+    },
   },
   default: {
-    ACTIVE: { label: 'Ativo', color: 'success' as const },
-    INACTIVE: { label: 'Inativo', color: 'default' as const },
+    ACTIVE: { 
+      label: 'Ativo', 
+      sx: { 
+        backgroundColor: '#D1FAE5', 
+        color: '#065F46',
+        fontWeight: 600,
+        border: '1px solid #10B981'
+      } 
+    },
+    INACTIVE: { 
+      label: 'Inativo', 
+      sx: { 
+        backgroundColor: '#F1F5F9', 
+        color: '#475569',
+        fontWeight: 600,
+        border: '1px solid #94A3B8'
+      } 
+    },
   },
 }
 
@@ -41,14 +161,24 @@ export const StatusChip: React.FC<StatusChipProps> = ({
 }) => {
   const config = (statusConfigs[type] as any)[status] || {
     label: status,
-    color: 'default' as const,
+    sx: { 
+      backgroundColor: '#F1F5F9', 
+      color: '#475569',
+      fontWeight: 600,
+      border: '1px solid #94A3B8'
+    },
   }
 
   return (
     <Chip
       label={config.label}
-      color={config.color}
       size="small"
+      sx={{
+        borderRadius: '6px',
+        height: '24px',
+        fontSize: '12px',
+        ...config.sx
+      }}
       {...props}
     />
   )

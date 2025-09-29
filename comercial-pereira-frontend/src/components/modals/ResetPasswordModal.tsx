@@ -7,6 +7,7 @@ import {
   Button,
   IconButton,
   Typography,
+  Box,
 } from '@mui/material'
 import { Close as CloseIcon } from '@mui/icons-material'
 import { useForm } from 'react-hook-form'
@@ -81,19 +82,74 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: '20px',
+          boxShadow: '0 25px 80px rgba(59, 130, 246, 0.15)',
+          background: 'white',
+          overflow: 'hidden',
+        }
+      }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        Resetar Senha
-        <IconButton onClick={handleClose} size="small">
+      <DialogTitle 
+        sx={{ 
+          borderBottom: '1px solid #E3F2FD',
+          backgroundColor: '#FAFBFF',
+          position: 'relative',
+          p: 3,
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: 700, 
+            color: '#1E293B',
+            background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Resetar Senha
+        </Typography>
+        <IconButton 
+          onClick={handleClose} 
+          sx={{
+            position: 'absolute',
+            right: 16,
+            top: 16,
+            color: '#64748B',
+            '&:hover': {
+              backgroundColor: '#EBF8FF',
+              color: '#3B82F6',
+            }
+          }}
+        >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
       
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Você está resetando a senha do usuário: <strong>{user.name}</strong> ({user.email})
-          </Typography>
+        <DialogContent sx={{ p: 3, backgroundColor: 'white' }}>
+          <Box 
+            sx={{
+              p: 3,
+              backgroundColor: '#F8FAFC',
+              borderRadius: '12px',
+              border: '1px solid #E3F2FD',
+              mb: 3,
+            }}
+          >
+            <Typography variant="body1" sx={{ color: '#64748B', mb: 1 }}>
+              Você está resetando a senha do usuário:
+            </Typography>
+            <Typography variant="h6" sx={{ color: '#1E293B', fontWeight: 600 }}>
+              {user.name}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#64748B' }}>
+              {user.email}
+            </Typography>
+          </Box>
           
           <FormTextField
             name="password"
@@ -111,15 +167,57 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           />
         </DialogContent>
         
-        <DialogActions>
-          <Button onClick={handleClose} variant="outlined">
+        <DialogActions
+          sx={{ 
+            p: 3, 
+            borderTop: '1px solid #E3F2FD', 
+            backgroundColor: '#FAFBFF',
+            gap: 2,
+          }}
+        >
+          <Button 
+            onClick={handleClose} 
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              color: '#64748B',
+              fontWeight: 600,
+              px: 4,
+              py: 1.5,
+              border: '2px solid #E2E8F0',
+              '&:hover': {
+                backgroundColor: '#F8FAFC',
+                borderColor: '#CBD5E1',
+                color: '#475569',
+              }
+            }}
+          >
             Cancelar
           </Button>
           <Button
             type="submit"
             variant="contained"
-            color="warning"
             disabled={resetPasswordMutation.isPending || !password}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 4,
+              py: 1.5,
+              background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+              boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+                boxShadow: '0 6px 20px rgba(245, 158, 11, 0.4)',
+                transform: 'translateY(-1px)',
+              },
+              '&:disabled': {
+                background: '#E2E8F0',
+                boxShadow: 'none',
+                transform: 'none',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
           >
             {resetPasswordMutation.isPending ? 'Resetando...' : 'Resetar Senha'}
           </Button>

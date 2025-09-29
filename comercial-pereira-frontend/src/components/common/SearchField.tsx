@@ -9,7 +9,6 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material'
 
-
 export const SearchField: React.FC<{
   value: string
   onChange: (value: string) => void
@@ -40,22 +39,31 @@ export const SearchField: React.FC<{
           borderRadius: '12px',
           backgroundColor: '#F8FAFC',
           '& fieldset': {
-            borderColor: '#E2E8F0',
+            borderColor: '#E3F2FD',
           },
           '&:hover fieldset': {
-            borderColor: '#CBD5E1',
+            borderColor: '#93C5FD',
           },
           '&.Mui-focused fieldset': {
-            borderColor: '#4F46E5',
+            borderColor: '#3B82F6',
             borderWidth: '2px',
+            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
           },
+        },
+        '& .MuiInputBase-input': {
+          color: '#1E293B',
+          fontWeight: 500,
+        },
+        '& .MuiInputBase-input::placeholder': {
+          color: '#94A3B8',
+          opacity: 1,
         },
         ...sx,
       }}
       InputProps={{
         startAdornment: (
           <InputAdornment position="start">
-            <SearchIcon sx={{ color: '#9CA3AF' }} />
+            <SearchIcon sx={{ color: '#60A5FA' }} />
           </InputAdornment>
         ),
         endAdornment: value && (
@@ -64,9 +72,10 @@ export const SearchField: React.FC<{
               size="small" 
               onClick={handleClear}
               sx={{
-                color: '#9CA3AF',
+                color: '#94A3B8',
                 '&:hover': {
-                  backgroundColor: '#F1F5F9',
+                  backgroundColor: '#EBF8FF',
+                  color: '#3B82F6',
                 }
               }}
             >

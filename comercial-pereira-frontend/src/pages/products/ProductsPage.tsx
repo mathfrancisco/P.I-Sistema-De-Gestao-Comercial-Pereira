@@ -139,9 +139,45 @@ export const ProductsPage: React.FC = () => {
       numeric: true,
       format: (value: number | null) => {
         if (value === null || value === undefined) return '-'
-        if (value === 0) return <Chip label="Sem Estoque" color="error" size="small" sx={{ borderRadius: '8px' }} />
-        if (value < 10) return <Chip label={value} color="warning" size="small" sx={{ borderRadius: '8px' }} />
-        return <Chip label={value} color="success" size="small" sx={{ borderRadius: '8px' }} />
+        if (value === 0) return (
+          <Chip 
+            label="Sem Estoque" 
+            size="small" 
+            sx={{
+              backgroundColor: '#FEE2E2',
+              color: '#991B1B',
+              fontWeight: 600,
+              borderRadius: '8px',
+              border: '1px solid #FECACA',
+            }}
+          />
+        )
+        if (value < 10) return (
+          <Chip 
+            label={value} 
+            size="small" 
+            sx={{
+              backgroundColor: '#FEF3C7',
+              color: '#92400E',
+              fontWeight: 600,
+              borderRadius: '8px',
+              border: '1px solid #FCD34D',
+            }}
+          />
+        )
+        return (
+          <Chip 
+            label={value} 
+            size="small" 
+            sx={{
+              backgroundColor: '#D1FAE5',
+              color: '#065F46',
+              fontWeight: 600,
+              borderRadius: '8px',
+              border: '1px solid #10B981',
+            }}
+          />
+        )
       },
     },
     {
@@ -151,11 +187,11 @@ export const ProductsPage: React.FC = () => {
         <Chip
           label={value ? 'Ativo' : 'Inativo'}
           sx={{
-            backgroundColor: value ? '#DCFCE7' : '#F3F4F6',
-            color: value ? '#166534' : '#6B7280',
+            backgroundColor: value ? '#D1FAE5' : '#F3F4F6',
+            color: value ? '#065F46' : '#6B7280',
             fontWeight: 600,
             borderRadius: '8px',
-            border: 'none',
+            border: value ? '1px solid #10B981' : '1px solid #9CA3AF',
           }}
           size="small"
         />
@@ -164,13 +200,13 @@ export const ProductsPage: React.FC = () => {
   ]
   
   return (
-    <Box sx={{ backgroundColor: '#F8FAFC', minHeight: '100vh' }}>
+    <Box sx={{ backgroundColor: '#FAFBFF', minHeight: '100vh' }}>
       <PageHeader
-        title="Product"
+        title="Produtos"
         subtitle="Gerencie seu catálogo de produtos"
         breadcrumbs={[
           { label: 'Dashboard', path: '/' },
-          { label: 'Product' },
+          { label: 'Produtos' },
         ]}
         actions={
           <Button
@@ -181,11 +217,11 @@ export const ProductsPage: React.FC = () => {
               borderRadius: '12px',
               textTransform: 'none',
               fontWeight: 600,
-              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-              boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)',
+              background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
               '&:hover': {
-                background: 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)',
-                boxShadow: '0 6px 20px rgba(79, 70, 229, 0.4)',
+                background: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
+                boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)',
                 transform: 'translateY(-1px)',
               },
               transition: 'all 0.2s ease-in-out',
@@ -198,7 +234,7 @@ export const ProductsPage: React.FC = () => {
       
       {/* Filters Section */}
       <Box sx={{ px: 3, pb: 3 }}>
-        <Card sx={{ borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #E2E8F0' }}>
+        <Card sx={{ borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #E3F2FD' }}>
           <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <FilterIcon sx={{ color: '#64748B', mr: 1 }} />
@@ -218,14 +254,15 @@ export const ProductsPage: React.FC = () => {
                       borderRadius: '12px',
                       backgroundColor: '#F8FAFC',
                       '& fieldset': {
-                        borderColor: '#E2E8F0',
+                        borderColor: '#E3F2FD',
                       },
                       '&:hover fieldset': {
-                        borderColor: '#CBD5E1',
+                        borderColor: '#93C5FD',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#4F46E5',
+                        borderColor: '#3B82F6',
                         borderWidth: '2px',
+                        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
                       },
                     },
                   }}
@@ -243,14 +280,15 @@ export const ProductsPage: React.FC = () => {
                       borderRadius: '12px',
                       backgroundColor: '#F8FAFC',
                       '& fieldset': {
-                        borderColor: '#E2E8F0',
+                        borderColor: '#E3F2FD',
                       },
                       '&:hover fieldset': {
-                        borderColor: '#CBD5E1',
+                        borderColor: '#93C5FD',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#4F46E5',
+                        borderColor: '#3B82F6',
                         borderWidth: '2px',
+                        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
                       },
                     }}
                   >
@@ -275,14 +313,15 @@ export const ProductsPage: React.FC = () => {
                       borderRadius: '12px',
                       backgroundColor: '#F8FAFC',
                       '& fieldset': {
-                        borderColor: '#E2E8F0',
+                        borderColor: '#E3F2FD',
                       },
                       '&:hover fieldset': {
-                        borderColor: '#CBD5E1',
+                        borderColor: '#93C5FD',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#4F46E5',
+                        borderColor: '#3B82F6',
                         borderWidth: '2px',
+                        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
                       },
                     }}
                   >

@@ -14,6 +14,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Card,
+  CardContent,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -22,12 +24,14 @@ import {
   Cancel as CancelIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
+  FilterList as FilterIcon,
 } from "@mui/icons-material";
 
 import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 import { DataTable } from "../../components/tables/DataTable";
 import { SearchField } from "../../components/common/SearchField";
+import { PageHeader } from "../../components/common/PageHeader";
 import { useDebounce } from "../../hooks/useDebounce";
 import { usePagination } from "../../hooks/usePagination";
 import saleService from "../../services/api/sale.service";
@@ -129,11 +133,11 @@ export const SalesPage: React.FC = () => {
       label: "Status",
       format: (value: unknown) => {
         const status = value as SaleStatus;
-        const statusColors = {
-          [SaleStatus.PENDING]: "warning",
-          [SaleStatus.COMPLETED]: "success",
-          [SaleStatus.CANCELLED]: "error",
-        } as const;
+        const statusStyles = {
+          [SaleStatus.PENDING]: { backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #F59E0B' },
+          [SaleStatus.COMPLETED]: { backgroundColor: '#D1FAE5', color: '#065F46', border: '1px solid #10B981' },
+          [SaleStatus.CANCELLED]: { backgroundColor: '#FEE2E2', color: '#991B1B', border: '1px solid #EF4444' },
+        };
 
         const statusLabels = {
           [SaleStatus.PENDING]: "Pendente",
@@ -144,8 +148,12 @@ export const SalesPage: React.FC = () => {
         return (
           <Chip
             label={statusLabels[status]}
-            color={statusColors[status]}
             size="small"
+            sx={{
+              ...statusStyles[status],
+              fontWeight: 600,
+              borderRadius: '8px',
+            }}
           />
         );
       },
@@ -178,76 +186,165 @@ export const SalesPage: React.FC = () => {
   ];
 
   return (
-    <Box>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
-        <Typography variant="h4">Vendas</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenForm(true)}
-        >
-          Nova Venda
-        </Button>
-      </Box>
-
-      <Box mb={3}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
-          <SearchField
-            value={search}
-            onChange={setSearch}
-            placeholder="Buscar por cliente, código..."
-            sx={{ minWidth: { xs: '100%', md: 300 } }}
-          />
-          
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as SaleStatus | "")
-              }
-              label="Status"
-            >
-              <MenuItem value="">Todos</MenuItem>
-              <MenuItem value={SaleStatus.PENDING}>Pendente</MenuItem>
-              <MenuItem value={SaleStatus.COMPLETED}>Concluída</MenuItem>
-              <MenuItem value={SaleStatus.CANCELLED}>Cancelada</MenuItem>
-            </Select>
-          </FormControl>
-          
-          <Box display="flex" gap={1}>
-            <Button variant="outlined" startIcon={<DownloadIcon />}>
-              Exportar
-            </Button>
-            <Button variant="outlined" startIcon={<PrintIcon />}>
-              Imprimir
-            </Button>
-          </Box>
-        </Stack>
-      </Box>
-
-      <DataTable<SaleResponse>
-        columns={columns}
-        rows={data?.content || []}
-        loading={isLoading}
-        error={error?.message}
-        page={pagination.page}
-        rowsPerPage={pagination.size}
-        totalElements={data?.totalElements || 0}
-        onPageChange={pagination.handlePageChange}
-        onRowsPerPageChange={pagination.handleSizeChange}
-        onSort={pagination.handleSortChange}
-        sortBy={pagination.sortBy}
-        sortOrder={pagination.sortOrder}
-        actions={actions}
-        getRowId={(row) => row.id}
-        emptyMessage="Nenhuma venda encontrada"
+    <Box sx={{ backgroundColor: '#FAFBFF', minHeight: '100vh' }}>
+      <PageHeader
+        title="Vendas"
+        subtitle="Gerencie suas vendas e acompanhe o desempenho"
+        breadcrumbs={[
+          { label: 'Dashboard', path: '/' },
+          { label: 'Vendas' },
+        ]}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenForm(true)}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
+                boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
+          >
+            Nova Venda
+          </Button>
+        }
       />
+
+      {/* Filters Section */}
+      <Box sx={{ px: 3, pb: 3 }}>
+        <Card sx={{ borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #E3F2FD' }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <FilterIcon sx={{ color: '#64748B', mr: 1 }} />
+              <Typography variant="h6" sx={{ color: '#1E293B', fontWeight: 600 }}>
+                Filtros e Ações
+              </Typography>
+            </Box>
+            
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="flex-start">
+              <SearchField
+                value={search}
+                onChange={setSearch}
+                placeholder="Buscar por cliente, código..."
+                sx={{ 
+                  minWidth: { xs: '100%', md: 300 },
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: '#F8FAFC',
+                    '& fieldset': {
+                      borderColor: '#E3F2FD',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#93C5FD',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#3B82F6',
+                      borderWidth: '2px',
+                      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
+                    },
+                  },
+                }}
+              />
+              
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value as SaleStatus | "")
+                  }
+                  label="Status"
+                  sx={{
+                    borderRadius: '12px',
+                    backgroundColor: '#F8FAFC',
+                    '& fieldset': {
+                      borderColor: '#E3F2FD',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#93C5FD',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#3B82F6',
+                      borderWidth: '2px',
+                      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
+                    },
+                  }}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value={SaleStatus.PENDING}>Pendente</MenuItem>
+                  <MenuItem value={SaleStatus.COMPLETED}>Concluída</MenuItem>
+                  <MenuItem value={SaleStatus.CANCELLED}>Cancelada</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <Box display="flex" gap={2}>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<DownloadIcon />}
+                  sx={{
+                    borderRadius: '12px',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderColor: '#E3F2FD',
+                    color: '#64748B',
+                    '&:hover': {
+                      borderColor: '#93C5FD',
+                      backgroundColor: '#F8FAFC',
+                    },
+                  }}
+                >
+                  Exportar
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<PrintIcon />}
+                  sx={{
+                    borderRadius: '12px',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderColor: '#E3F2FD',
+                    color: '#64748B',
+                    '&:hover': {
+                      borderColor: '#93C5FD',
+                      backgroundColor: '#F8FAFC',
+                    },
+                  }}
+                >
+                  Imprimir
+                </Button>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Data Table */}
+      <Box sx={{ px: 3 }}>
+        <DataTable<SaleResponse>
+          columns={columns}
+          rows={data?.content || []}
+          loading={isLoading}
+          error={error?.message}
+          page={pagination.page}
+          rowsPerPage={pagination.size}
+          totalElements={data?.totalElements || 0}
+          onPageChange={pagination.handlePageChange}
+          onRowsPerPageChange={pagination.handleSizeChange}
+          onSort={pagination.handleSortChange}
+          sortBy={pagination.sortBy}
+          sortOrder={pagination.sortOrder}
+          actions={actions}
+          getRowId={(row) => row.id}
+          emptyMessage="Nenhuma venda encontrada"
+        />
+      </Box>
 
       {/* Modal de formulário de venda */}
       <Dialog
@@ -256,17 +353,48 @@ export const SalesPage: React.FC = () => {
         maxWidth="lg"
         fullWidth
         fullScreen
+        PaperProps={{
+          sx: {
+            backgroundColor: '#FAFBFF',
+          }
+        }}
       >
-        <DialogTitle>
-          {editMode ? "Editar Venda" : "Nova Venda"}
+        <DialogTitle
+          sx={{
+            borderBottom: '1px solid #E3F2FD',
+            backgroundColor: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700, 
+              color: '#1E293B',
+              background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {editMode ? "Editar Venda" : "Nova Venda"}
+          </Typography>
           <IconButton
             onClick={handleCloseForm}
-            sx={{ position: "absolute", right: 8, top: 8 }}
+            sx={{
+              color: '#64748B',
+              '&:hover': {
+                backgroundColor: '#EBF8FF',
+                color: '#3B82F6',
+              }
+            }}
           >
             <CancelIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ backgroundColor: '#FAFBFF' }}>
           <SaleForm
             sale={selectedSale}
             onSuccess={() => {

@@ -7,6 +7,7 @@ import {
   Button,
   Stack,
   IconButton,
+  Typography,
 } from '@mui/material'
 import { Close as CloseIcon } from '@mui/icons-material'
 import { useForm } from 'react-hook-form'
@@ -134,17 +135,56 @@ export const UserModal: React.FC<UserModalProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: '20px',
+          boxShadow: '0 25px 80px rgba(59, 130, 246, 0.15)',
+          background: 'white',
+          overflow: 'hidden',
+        }
+      }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        {isEditMode ? 'Editar Usuário' : 'Novo Usuário'}
-        <IconButton onClick={handleClose} size="small">
+      <DialogTitle 
+        sx={{ 
+          borderBottom: '1px solid #E3F2FD',
+          backgroundColor: '#FAFBFF',
+          position: 'relative',
+          p: 3,
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: 700, 
+            color: '#1E293B',
+            background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          {isEditMode ? 'Editar Usuário' : 'Novo Usuário'}
+        </Typography>
+        <IconButton 
+          onClick={handleClose} 
+          sx={{
+            position: 'absolute',
+            right: 16,
+            top: 16,
+            color: '#64748B',
+            '&:hover': {
+              backgroundColor: '#EBF8FF',
+              color: '#3B82F6',
+            }
+          }}
+        >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
       
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent>
-          <Stack spacing={2}>
+        <DialogContent sx={{ p: 3, backgroundColor: 'white' }}>
+          <Stack spacing={3}>
             <FormTextField
               name="name"
               label="Nome"
@@ -185,14 +225,57 @@ export const UserModal: React.FC<UserModalProps> = ({
           </Stack>
         </DialogContent>
         
-        <DialogActions>
-          <Button onClick={handleClose} variant="outlined">
+        <DialogActions 
+          sx={{ 
+            p: 3, 
+            borderTop: '1px solid #E3F2FD', 
+            backgroundColor: '#FAFBFF',
+            gap: 2,
+          }}
+        >
+          <Button 
+            onClick={handleClose} 
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              color: '#64748B',
+              fontWeight: 600,
+              px: 4,
+              py: 1.5,
+              border: '2px solid #E2E8F0',
+              '&:hover': {
+                backgroundColor: '#F8FAFC',
+                borderColor: '#CBD5E1',
+                color: '#475569',
+              }
+            }}
+          >
             Cancelar
           </Button>
           <Button
             type="submit"
             variant="contained"
             disabled={createMutation.isPending || updateMutation.isPending}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 4,
+              py: 1.5,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
+                boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)',
+                transform: 'translateY(-1px)',
+              },
+              '&:disabled': {
+                background: '#E2E8F0',
+                boxShadow: 'none',
+                transform: 'none',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
           >
             {createMutation.isPending || updateMutation.isPending
               ? 'Salvando...'
