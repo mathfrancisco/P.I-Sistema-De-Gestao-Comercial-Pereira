@@ -113,7 +113,20 @@ class CategoryService {
     const response = await api.get<CategoryStatisticsResponse>(ENDPOINTS.categories.statistics)
     return response.data
   }
+
+    async search(query: string, limit = 10): Promise<CategoryResponse[]> {
+        const response = await api.get<CategoryResponse[]>(ENDPOINTS.categories.search, {
+            params: { query, limit }
+        })
+        return response.data
+    }
+
+    async getCategoriesWithCnae(): Promise<CategoryResponse[]> {
+        const response = await api.get<CategoryResponse[]>(ENDPOINTS.categories.withCnae)
+        return response.data
+    }
 }
+
 
 // Exporta uma instância singleton do serviço
 export default new CategoryService()

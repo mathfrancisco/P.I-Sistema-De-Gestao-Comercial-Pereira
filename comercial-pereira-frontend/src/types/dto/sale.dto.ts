@@ -1,60 +1,78 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-import { SaleStatus, PaymentMethod } from '../enums'
+import type { SaleStatus } from "../enums";
 
 export interface SaleResponse {
     id: number
-    customerId: number
-    customerName: string
-    userId: number
-    userName: string
-    saleDate: string
-    status: SaleStatus
-    subtotal: number
-    discount?: number
     total: number
-    paymentMethod?: PaymentMethod
-    observations?: string
-    items: SaleItemResponse[]
+    discount?: number
+    tax?: number
+    status: SaleStatus
+    notes?: string
+    saleDate: string
     createdAt: string
     updatedAt: string
+    user: UserInfo
+    customer: CustomerInfo
+    items: SaleItemInfo[]
+    itemCount: number
 }
 
-export interface SaleItemResponse {
+export interface UserInfo {
     id: number
-    productId: number
-    productName: string
+    name: string
+    role?: string
+}
+
+export interface CustomerInfo {
+    id: number
+    name: string
+    type: string
+    document?: string
+}
+
+export interface SaleItemInfo {
+    id: number
     quantity: number
     unitPrice: number
-    discount?: number
     total: number
+    discount?: number
+    product: ProductInfo
+}
+
+export interface ProductInfo {
+    id: number
+    name: string
+    code: string
+    categoryName: string
 }
 
 export interface CreateSaleRequest {
     customerId: number
-    userId: number
-    saleDate?: string
-    paymentMethod?: PaymentMethod
+    notes?: string
     discount?: number
-    observations?: string
-    items: CreateSaleItemRequest[]
+    tax?: number
+    items: SaleItemRequest[]
 }
 
-export interface CreateSaleItemRequest {
+export interface SaleItemRequest {
     productId: number
     quantity: number
-    unitPrice: number
+    unitPrice?: number
     discount?: number
 }
 
 export interface UpdateSaleRequest {
     customerId?: number
-    saleDate?: string
-    paymentMethod?: PaymentMethod
+    notes?: string
     discount?: number
-    observations?: string
+    tax?: number
 }
 
-export interface AddSaleItemRequest extends CreateSaleItemRequest {}
+export interface AddSaleItemRequest {
+    productId: number
+    quantity: number
+    unitPrice?: number
+    discount?: number
+}
 
 export interface UpdateSaleItemRequest {
     quantity?: number
@@ -63,13 +81,17 @@ export interface UpdateSaleItemRequest {
 }
 
 export interface SaleFilters {
-    search?: string
     customerId?: number
     userId?: number
     status?: SaleStatus
     dateFrom?: string
     dateTo?: string
+    minTotal?: number
+    maxTotal?: number
+    search?: string
     page?: number
     size?: number
-    sort?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    includeItems?: boolean
 }

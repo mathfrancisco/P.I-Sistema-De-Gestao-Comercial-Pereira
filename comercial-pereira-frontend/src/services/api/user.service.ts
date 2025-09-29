@@ -1,6 +1,6 @@
 import { ENDPOINTS } from '../../config/api.config'
 import type { PageResponse, Statistics } from '../../types/dto/common.dto'
-import type { CreateUserRequest, UserResponse, UserFilters, UpdateUserRequest, ResetPasswordRequest } from '../../types/dto/user.dto'
+import type { CreateUserRequest, UserResponse, UserFilters, UpdateUserRequest } from '../../types/dto/user.dto'
 import type { UserRole } from '../../types/enums'
 import api from './axios.config'
 
@@ -37,9 +37,9 @@ class UserService {
     return response.data
   }
 
-  async resetPassword(id: number, data: ResetPasswordRequest): Promise<void> {
-    await api.put(ENDPOINTS.users.password(id), data)
-  }
+    async resetPassword(id: number, password: string): Promise<void> {
+        await api.put(ENDPOINTS.users.password(id), { password })
+    }
 
   async delete(id: number, reason?: string): Promise<void> {
     const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''

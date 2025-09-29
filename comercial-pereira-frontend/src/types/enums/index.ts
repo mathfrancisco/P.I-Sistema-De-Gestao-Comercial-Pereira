@@ -5,14 +5,15 @@ export enum UserRole {
 }
 
 export enum CustomerType {
-    FISICA = 'FISICA',
-    JURIDICA = 'JURIDICA',
+    RETAIL = 'RETAIL',      // Era FISICA
+    WHOLESALE = 'WHOLESALE'  // Era JURIDICA
 }
 
 export enum SaleStatus {
     PENDING = 'PENDING',
     COMPLETED = 'COMPLETED',
     CANCELLED = 'CANCELLED',
+    DRAFT = 'DRAFT',
 }
 
 export enum MovementType {

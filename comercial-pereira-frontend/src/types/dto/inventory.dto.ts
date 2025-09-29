@@ -1,31 +1,44 @@
-import { MovementType } from '../enums'
-
 export interface InventoryResponse {
     id: number
-    productId: number
-    productName: string
-    productCode: string
-    currentQuantity: number
-    minQuantity?: number
-    maxQuantity?: number
-    location?: string
-    lastMovement?: string
-    status: 'OK' | 'LOW' | 'OUT_OF_STOCK' | 'EXCESS'
+    quantity: number
+    minStock: number
+    maxStock: number
+    location: string
+    lastUpdate: string
     createdAt: string
     updatedAt: string
+    isLowStock: boolean
+    isOutOfStock: boolean
+    isOverstock: boolean
+    status: 'OK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'OVERSTOCK'
+
+    product: {
+        id: number
+        name: string
+        code: string
+        price: number
+        category: {
+            id: number
+            name: string
+        }
+        supplier: {
+            id: number
+            name: string
+        }
+    }
 }
 
 export interface CreateInventoryRequest {
     productId: number
-    currentQuantity: number
-    minQuantity?: number
-    maxQuantity?: number
+    quantity: number
+    minStock?: number
+    maxStock?: number
     location?: string
 }
 
 export interface UpdateInventoryRequest {
-    minQuantity?: number
-    maxQuantity?: number
+    minStock?: number
+    maxStock?: number
     location?: string
 }
 
@@ -40,7 +53,7 @@ export interface MovementResponse {
     id: number
     productId: number
     productName: string
-    type: MovementType
+    type: string
     quantity: number
     quantityBefore: number
     quantityAfter: number
@@ -69,7 +82,7 @@ export interface InventoryFilters {
 
 export interface MovementFilters {
     productId?: number
-    type?: MovementType
+    type?: string
     userId?: number
     saleId?: number
     reason?: string
@@ -86,8 +99,8 @@ export interface InventoryStatsResponse {
     totalValue: number
     lowStockCount: number
     outOfStockCount: number
-    excessStockCount: number
-    topMovingProducts: Array<{
+    excessStockCount?: number
+    topMovingProducts?: Array<{
         productId: number
         productName: string
         movementCount: number
@@ -99,6 +112,6 @@ export interface StockCheckResponse {
     hasStock: boolean
     currentQuantity: number
     availableQuantity: number
-    reservedQuantity: number
+    reservedQuantity?: number
     status: string
 }

@@ -119,6 +119,26 @@ class SupplierService {
     const response = await api.get<string[]>(ENDPOINTS.suppliers.states)
     return response.data
   }
+
+    async search(query: string, limit = 20, includeInactive = false): Promise<SupplierResponse[]> {
+        const response = await api.get<SupplierResponse[]>(ENDPOINTS.suppliers.search, {
+            params: { q: query, limit, includeInactive }
+        })
+        return response.data
+    }
+
+    async getSuppliersByState(state: string): Promise<SupplierResponse[]> {
+        const response = await api.get<SupplierResponse[]>(
+            ENDPOINTS.suppliers.byState(state)
+        )
+        return response.data
+    }
+
+    async getSuppliersWithProducts(): Promise<SupplierResponse[]> {
+        const response = await api.get<SupplierResponse[]>(ENDPOINTS.suppliers.withProducts)
+        return response.data
+    }
+
 }
 
 // Exporta uma instância singleton do serviço

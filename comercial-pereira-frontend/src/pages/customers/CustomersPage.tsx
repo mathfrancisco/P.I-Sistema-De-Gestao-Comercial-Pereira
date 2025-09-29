@@ -83,19 +83,19 @@ export const CustomersPage: React.FC = () => {
     {
       id: 'type',
       label: 'Tipo',
-      format: (value: CustomerType) => (
-        <Chip
-          label={value === CustomerType.FISICA ? 'Pessoa Física' : 'Pessoa Jurídica'}
-          size="small"
-          sx={{
-            backgroundColor: value === CustomerType.FISICA ? '#DBEAFE' : '#F3E8FF',
-            color: value === CustomerType.FISICA ? '#1E40AF' : '#7C3AED',
-            fontWeight: 600,
-            borderRadius: '8px',
-            border: value === CustomerType.FISICA ? '1px solid #93C5FD' : '1px solid #C4B5FD',
-          }}
-        />
-      ),
+        format: (value: CustomerType) => (
+            <Chip
+                label={value === CustomerType.RETAIL ? 'Pessoa Física' : 'Pessoa Jurídica'}
+                size="small"
+                sx={{
+                    backgroundColor: value === CustomerType.RETAIL ? '#DBEAFE' : '#F3E8FF',
+                    color: value === CustomerType.RETAIL ? '#1E40AF' : '#7C3AED',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    border: value === CustomerType.RETAIL ? '1px solid #93C5FD' : '1px solid #C4B5FD',
+                }}
+            />
+        ),
     },
   ]
   
@@ -192,8 +192,8 @@ export const CustomersPage: React.FC = () => {
                     }}
                   >
                     <MenuItem value="">Todos</MenuItem>
-                    <MenuItem value={CustomerType.FISICA}>Pessoa Física</MenuItem>
-                    <MenuItem value={CustomerType.JURIDICA}>Pessoa Jurídica</MenuItem>
+                      <MenuItem value={CustomerType.RETAIL}>Pessoa Física</MenuItem>
+                      <MenuItem value={CustomerType.WHOLESALE}>Pessoa Jurídica</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

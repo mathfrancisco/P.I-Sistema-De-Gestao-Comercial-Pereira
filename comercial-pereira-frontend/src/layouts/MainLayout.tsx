@@ -20,7 +20,6 @@ import {
   Collapse,
   TextField,
   InputAdornment,
-  alpha,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -490,7 +489,7 @@ export const MainLayout: React.FC = () => {
           </Typography>
           
           <List sx={{ p: 0 }}>
-            {filteredMenuItems.map((item, index) => {
+            {filteredMenuItems.map((item) => {
               const isActive = isActiveRoute(item.path);
               
               return (
@@ -713,20 +712,20 @@ export const MainLayout: React.FC = () => {
       </Drawer>
 
       {/* Main Content Area */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          backgroundColor: '#FAFBFF',
-          marginLeft: sidebarOpen ? `${drawerWidth}px` : 0,
-          transition: "margin 0.3s ease-in-out",
-          mt: '80px',
-          minHeight: 'calc(100vh - 80px)',
-          position: 'relative',
-        }}
-      >
-        <Outlet />
-      </Box>
+        <Box
+            component="main"
+            sx={{
+                flexGrow: 1,
+                backgroundColor: '#FAFBFF',
+                marginLeft: 0,  // ← Sempre 0
+                transition: "margin 0.3s ease-in-out",
+                mt: '80px',
+                minHeight: 'calc(100vh - 80px)',
+                position: 'relative',
+            }}
+        >
+            <Outlet />
+        </Box>
     </Box>
   );
 };

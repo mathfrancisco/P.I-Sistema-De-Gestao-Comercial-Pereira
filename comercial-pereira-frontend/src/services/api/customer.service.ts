@@ -47,12 +47,13 @@ class CustomerService {
     return response.data
   }
 
-  async search(query: string, limit = 10): Promise<CustomerResponse[]> {
-    const response = await api.get<CustomerResponse[]>(ENDPOINTS.customers.base, {
-      params: { search: query, size: limit },
-    })
-    return response.data
-  }
+    async search(query: string, limit = 10): Promise<CustomerResponse[]> {
+        const response = await api.get<PageResponse<CustomerResponse>>(
+            ENDPOINTS.customers.base,
+            { params: { search: query, size: limit } }
+        )
+        return response.data.content // Retornar apenas o array de content
+    }
 }
 
 export default new CustomerService()

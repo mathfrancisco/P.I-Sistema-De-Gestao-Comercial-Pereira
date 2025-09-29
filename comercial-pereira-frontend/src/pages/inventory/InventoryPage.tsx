@@ -92,45 +92,45 @@ export const InventoryPage: React.FC = () => {
   const handleAdjustStock = (inventory: InventoryResponse) => {
     setAdjustmentModal({ open: true, inventory })
   }
-  
-  const columns = [
-    {
-      id: 'productCode',
-      label: 'Código',
-      width: 100,
-    },
-    {
-      id: 'productName',
-      label: 'Produto',
-    },
-    {
-      id: 'currentQuantity',
-      label: 'Qtd. Atual',
-      numeric: true,
-    },
-    {
-      id: 'minQuantity',
-      label: 'Qtd. Mínima',
-      numeric: true,
-      format: (value: number | null) => value || '-',
-    },
-    {
-      id: 'maxQuantity',
-      label: 'Qtd. Máxima',
-      numeric: true,
-      format: (value: number | null) => value || '-',
-    },
-    {
-      id: 'location',
-      label: 'Localização',
-      format: (value: string | null) => value || '-',
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      format: (value: string) => <StatusChip status={value} type="inventory" />,
-    },
-  ]
+
+    const columns = [
+        {
+            id: 'product.code',  // ← Acessa via notação de ponto
+            label: 'Código',
+            width: 100,
+        },
+        {
+            id: 'product.name',  // ← Acessa via notação de ponto
+            label: 'Produto',
+        },
+        {
+            id: 'quantity',  // ← Campo direto
+            label: 'Qtd. Atual',
+            numeric: true,
+        },
+        {
+            id: 'minStock',  // ← Campo direto
+            label: 'Qtd. Mínima',
+            numeric: true,
+            format: (value: number | null) => value || '-',
+        },
+        {
+            id: 'maxStock',  // ← Campo direto
+            label: 'Qtd. Máxima',
+            numeric: true,
+            format: (value: number | null) => value || '-',
+        },
+        {
+            id: 'location',
+            label: 'Localização',
+            format: (value: string | null) => value || '-',
+        },
+        {
+            id: 'status',
+            label: 'Status',
+            format: (value: string) => <StatusChip status={value} type="inventory" />,
+        },
+    ];
   
   const statCards = [
     {
@@ -253,41 +253,41 @@ export const InventoryPage: React.FC = () => {
           getRowId={(row) => row.id}
         />
       </TabPanel>
-      
-      <TabPanel value={tabValue} index={1}>
-        {lowStockProducts && lowStockProducts.length > 0 && (
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Produtos com Estoque Baixo
-            </Typography>
-            {lowStockProducts.map((product) => (
-              <Box key={product.id} sx={{ mb: 1 }}>
-                <Typography>
-                  <strong>{product.productName}</strong> - 
-                  Estoque: {product.currentQuantity} / 
-                  Mínimo: {product.minQuantity}
-                </Typography>
-              </Box>
-            ))}
-          </Alert>
-        )}
-        
-        {outOfStockProducts && outOfStockProducts.length > 0 && (
-          <Alert severity="error">
-            <Typography variant="h6" gutterBottom>
-              Produtos Sem Estoque
-            </Typography>
-            {outOfStockProducts.map((product) => (
-              <Box key={product.id} sx={{ mb: 1 }}>
-                <Typography>
-                  <strong>{product.productName}</strong> - 
-                  Código: {product.productCode}
-                </Typography>
-              </Box>
-            ))}
-          </Alert>
-        )}
-      </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
+            {lowStockProducts && lowStockProducts.length > 0 && (
+                <Alert severity="warning" sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Produtos com Estoque Baixo
+                    </Typography>
+                    {lowStockProducts.map((product) => (
+                        <Box key={product.id} sx={{ mb: 1 }}>
+                            <Typography>
+                                <strong>{product.product.name}</strong> -
+                                Estoque: {product.quantity} /
+                                Mínimo: {product.minStock}
+                            </Typography>
+                        </Box>
+                    ))}
+                </Alert>
+            )}
+
+            {outOfStockProducts && outOfStockProducts.length > 0 && (
+                <Alert severity="error">
+                    <Typography variant="h6" gutterBottom>
+                        Produtos Sem Estoque
+                    </Typography>
+                    {outOfStockProducts.map((product) => (
+                        <Box key={product.id} sx={{ mb: 1 }}>
+                            <Typography>
+                                <strong>{product.product.name}</strong> -
+                                Código: {product.product.code}
+                            </Typography>
+                        </Box>
+                    ))}
+                </Alert>
+            )}
+        </TabPanel>
       
       <TabPanel value={tabValue} index={2}>
         <Typography>Movimentações do Estoque</Typography>

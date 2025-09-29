@@ -108,96 +108,96 @@ export const ProductsPage: React.FC = () => {
       style: 'currency',
       currency: 'BRL',
     }).format(value)
-  
-  const columns = [
-    {
-      id: 'code',
-      label: 'Código',
-      width: 100,
-    },
-    {
-      id: 'name',
-      label: 'Nome',
-    },
-    {
-      id: 'categoryName',
-      label: 'Categoria',
-    },
-    {
-      id: 'supplierName',
-      label: 'Fornecedor',
-    },
-    {
-      id: 'unitPrice',
-      label: 'Preço',
-      numeric: true,
-      format: formatCurrency,
-    },
-    {
-      id: 'currentStock',
-      label: 'Estoque',
-      numeric: true,
-      format: (value: number | null) => {
-        if (value === null || value === undefined) return '-'
-        if (value === 0) return (
-          <Chip 
-            label="Sem Estoque" 
-            size="small" 
-            sx={{
-              backgroundColor: '#FEE2E2',
-              color: '#991B1B',
-              fontWeight: 600,
-              borderRadius: '8px',
-              border: '1px solid #FECACA',
-            }}
-          />
-        )
-        if (value < 10) return (
-          <Chip 
-            label={value} 
-            size="small" 
-            sx={{
-              backgroundColor: '#FEF3C7',
-              color: '#92400E',
-              fontWeight: 600,
-              borderRadius: '8px',
-              border: '1px solid #FCD34D',
-            }}
-          />
-        )
-        return (
-          <Chip 
-            label={value} 
-            size="small" 
-            sx={{
-              backgroundColor: '#D1FAE5',
-              color: '#065F46',
-              fontWeight: 600,
-              borderRadius: '8px',
-              border: '1px solid #10B981',
-            }}
-          />
-        )
-      },
-    },
-    {
-      id: 'isActive',
-      label: 'Status',
-      format: (value: boolean) => (
-        <Chip
-          label={value ? 'Ativo' : 'Inativo'}
-          sx={{
-            backgroundColor: value ? '#D1FAE5' : '#F3F4F6',
-            color: value ? '#065F46' : '#6B7280',
-            fontWeight: 600,
-            borderRadius: '8px',
-            border: value ? '1px solid #10B981' : '1px solid #9CA3AF',
-          }}
-          size="small"
-        />
-      ),
-    },
-  ]
+
+    const columns = [
+        {
+            id: 'code',
+            label: 'Código',
+            width: 100,
+        },
+        {
+            id: 'name',
+            label: 'Nome',
+        },
+        {
+            id: 'category.name',  // ← Acessa o nome dentro do objeto category
+            label: 'Categoria',
+        },
+        {
+            id: 'supplier.name',  // ← Acessa o nome dentro do objeto supplier
+            label: 'Fornecedor',
+        },
+        {
+            id: 'price',  // ← Mudou de unitPrice para price
+            label: 'Preço',
+            numeric: true,
+            format: formatCurrency,
+        },
+        {
+            id: 'inventory.quantity',  // ← Acessa quantity dentro de inventory
+            label: 'Estoque',
+            numeric: true,
+            format: (value: number | null) => {
+                if (value === null || value === undefined) return '-'
+                if (value === 0) return (
+                    <Chip
+                        label="Sem Estoque"
+                        size="small"
+                        sx={{
+                            backgroundColor: '#FEE2E2',
+                            color: '#991B1B',
+                            fontWeight: 600,
+                            borderRadius: '8px',
+                            border: '1px solid #FECACA',
+                        }}
+                    />
+                )
+                if (value < 10) return (
+                    <Chip
+                        label={value}
+                        size="small"
+                        sx={{
+                            backgroundColor: '#FEF3C7',
+                            color: '#92400E',
+                            fontWeight: 600,
+                            borderRadius: '8px',
+                            border: '1px solid #FCD34D',
+                        }}
+                    />
+                )
+                return (
+                    <Chip
+                        label={value}
+                        size="small"
+                        sx={{
+                            backgroundColor: '#D1FAE5',
+                            color: '#065F46',
+                            fontWeight: 600,
+                            borderRadius: '8px',
+                            border: '1px solid #10B981',
+                        }}
+                    />
+                )
+            },
+        },
+        {
+            id: 'isActive',
+            label: 'Status',
+            format: (value: boolean) => (
+                <Chip
+                    label={value ? 'Ativo' : 'Inativo'}
+                    sx={{
+                        backgroundColor: value ? '#D1FAE5' : '#F3F4F6',
+                        color: value ? '#065F46' : '#6B7280',
+                        fontWeight: 600,
+                        borderRadius: '8px',
+                        border: value ? '1px solid #10B981' : '1px solid #9CA3AF',
+                    }}
+                    size="small"
+                />
+            ),
+        },
+    ];
   
   return (
     <Box sx={{ backgroundColor: '#FAFBFF', minHeight: '100vh' }}>

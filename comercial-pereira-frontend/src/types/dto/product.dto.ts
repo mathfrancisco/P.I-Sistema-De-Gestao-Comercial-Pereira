@@ -4,19 +4,32 @@ export interface ProductResponse {
     name: string
     description?: string
     barcode?: string
-    unitPrice: number
-    costPrice?: number
-    categoryId: number
-    categoryName: string
-    supplierId: number
-    supplierName: string
-    unit: string
+    price: number  // ← Mudou de unitPrice para price
     isActive: boolean
-    currentStock?: number
-    minStock?: number
-    maxStock?: number
     createdAt: string
     updatedAt: string
+
+    // Objetos aninhados
+    category: {
+        id: number
+        name: string
+        description?: string
+    }
+
+    supplier: {
+        id: number
+        name: string
+        contactPerson?: string
+    }
+
+    inventory: {
+        quantity: number
+        minStock: number
+        maxStock: number
+        location: string
+        isLowStock: boolean
+        isOutOfStock: boolean
+    }
 }
 
 export interface CreateProductRequest {
@@ -24,11 +37,9 @@ export interface CreateProductRequest {
     name: string
     description?: string
     barcode?: string
-    unitPrice: number
-    costPrice?: number
+    price: number  // ← Mudou
     categoryId: number
     supplierId: number
-    unit: string
     isActive?: boolean
 }
 

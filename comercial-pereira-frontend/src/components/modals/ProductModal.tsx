@@ -39,21 +39,19 @@ export const ProductModal: React.FC<{
 }) => {
   const queryClient = useQueryClient()
   const isEditMode = !!product
-  
-  const { control, handleSubmit, reset } = useForm({
-    defaultValues: {
-      code: '',
-      name: '',
-      description: '',
-      barcode: '',
-      unitPrice: 0,
-      costPrice: 0,
-      categoryId: 0,
-      supplierId: 0,
-      unit: 'UN',
-      isActive: true,
-    },
-  })
+
+    const { control, handleSubmit, reset } = useForm({
+        defaultValues: {
+            code: '',
+            name: '',
+            description: '',
+            barcode: '',
+            price: 0,
+            categoryId: 0,
+            supplierId: 0,
+            isActive: true,
+        },
+    })
   
   // Queries para carregar categorias e fornecedores
   const { data: categories = [] } = useQuery({
@@ -91,23 +89,19 @@ export const ProductModal: React.FC<{
       toast.error('Erro ao atualizar produto')
     },
   })
-  
-  useEffect(() => {
-    if (product) {
-      reset(product)
-    } else {
-      reset({
-        code: '',
-        name: '',
-        description: '',
-        barcode: '',
-        unitPrice: 0,
-        costPrice: 0,
-        categoryId: 0,
-        supplierId: 0,
-        unit: 'UN',
-        isActive: true,
-      })
+
+    useEffect(() => {
+        if (product) {
+            reset({
+                code: product.code,
+                name: product.name,
+                description: product.description,
+                barcode: product.barcode,
+                price: product.price,
+                categoryId: product.category.id,  // ← Acessa o id do objeto
+                supplierId: product.supplier.id,  // ← Acessa o id do objeto
+                isActive: product.isActive,
+            })
     }
   }, [product, reset])
   
@@ -234,33 +228,13 @@ export const ProductModal: React.FC<{
                 label="Código de Barras"
               />
             </Grid>
-            
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormSelect
-                name="unit"
-                control={control}
-                label="Unidade"
-                options={unitOptions}
-                emptyOption={false}
-              />
-            </Grid>
-            
-            <Grid size={{ xs: 12, md: 6 }}>
+
               <FormCurrency
-                name="costPrice"
-                control={control}
-                label="Preço de Custo"
+                  name="price"    
+                  control={control}
+                  label="Preço de Venda"
+                  required
               />
-            </Grid>
-            
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormCurrency
-                name="unitPrice"
-                control={control}
-                label="Preço de Venda"
-                required
-              />
-            </Grid>
             
             <Grid size={{ xs: 12, md: 6 }}>
               <FormSelect

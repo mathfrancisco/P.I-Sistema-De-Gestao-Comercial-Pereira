@@ -4,6 +4,8 @@ export const API_CONFIG = {
     headers: {
         'Content-Type': 'application/json',
     },
+    // CRÍTICO: Permite envio de cookies cross-origin
+    withCredentials: true,
 }
 
 export const ENDPOINTS = {
@@ -12,12 +14,14 @@ export const ENDPOINTS = {
         login: '/auth/login',
         refresh: '/auth/refresh',
         logout: '/auth/logout',
+        me: '/auth/me',
     },
 
     // Users
     users: {
         base: '/users',
         byId: (id: number) => `/users/${id}`,
+        me: '/users/me',
         password: (id: number) => `/users/${id}/password`,
         search: '/users/search',
         active: '/users/active',
@@ -28,10 +32,11 @@ export const ENDPOINTS = {
     // Sales
     sales: {
         base: '/sales',
-        byId: (id: number) => `/v1/sales/${id}`,
-        cancel: (id: number) => `/v1/sales/${id}/cancel`,
-        items: (saleId: number) => `/v1/sales/${saleId}/items`,
-        itemById: (saleId: number, itemId: number) => `/v1/sales/${saleId}/items/${itemId}`,
+        byId: (id: number) => `/sales/${id}`,
+        cancel: (id: number) => `/sales/${id}/cancel`,
+        items: (saleId: number) => `/sales/${saleId}/items`,
+        itemById: (saleId: number, itemId: number) => `/sales/${saleId}/items/${itemId}`,
+        complete: (id: number) => `/sales/${id}/complete`
     },
 
     // Customers
@@ -101,5 +106,6 @@ export const ENDPOINTS = {
         statistics: '/categories/statistics',
         byName: (name: string) => `/categories/by-name/${name}`,
         byCnae: (cnae: string) => `/categories/by-cnae/${cnae}`,
+
     },
 }

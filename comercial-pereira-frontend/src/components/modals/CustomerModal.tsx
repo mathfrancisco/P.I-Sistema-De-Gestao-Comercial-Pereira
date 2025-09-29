@@ -11,12 +11,10 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    Box,
     Typography,
 } from '@mui/material'
 import { Close as CloseIcon } from '@mui/icons-material'
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
+import { useForm, Controller } from 'react-hook-form'
 import * as yup from 'yup'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-hot-toast'
@@ -29,20 +27,7 @@ import type {
 } from '../../types/dto/customer.dto'
 import { CustomerType } from '../../types/enums'
 import customerService from '../../services/api/customer.service'
-
-const customerSchema = yup.object({
-    name: yup.string().required('Nome é obrigatório'),
-    email: yup.string().email('Email inválido'),
-    phone: yup.string(),
-    document: yup.string(),
-    type: yup.string().required('Tipo de cliente é obrigatório'),
-    address: yup.string(),
-    city: yup.string(),
-    state: yup.string(),
-    zipCode: yup.string(),
-    neighborhood: yup.string(),
-    isActive: yup.boolean(),
-})
+import { formatPhone, formatZipCode, cleanEmptyString } from '../../utils/formatters'
 
 interface CustomerModalProps {
     open: boolean
@@ -64,7 +49,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             email: '',
             phone: '',
             document: '',
-            type: CustomerType.FISICA,
+            type: CustomerType.RETAIL,
             address: '',
             city: '',
             state: '',
@@ -82,8 +67,9 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             toast.success('Cliente criado com sucesso')
             handleClose()
         },
-        onError: () => {
-            toast.error('Erro ao criar cliente')
+        onError: (error: any) => {
+            const errorMessage = error?.response?.data?.message || 'Erro ao criar cliente'
+            toast.error(errorMessage)
         },
     })
 
@@ -95,8 +81,9 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             toast.success('Cliente atualizado com sucesso')
             handleClose()
         },
-        onError: () => {
-            toast.error('Erro ao atualizar cliente')
+        onError: (error: any) => {
+            const errorMessage = error?.response?.data?.message || 'Erro ao atualizar cliente'
+            toast.error(errorMessage)
         },
     })
 
@@ -121,7 +108,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                 email: '',
                 phone: '',
                 document: '',
-                type: CustomerType.FISICA,
+                type: CustomerType.RETAIL,
                 address: '',
                 city: '',
                 state: '',
@@ -138,10 +125,25 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     }
 
     const onSubmit = (data: any) => {
+        // Formata e limpa os dados antes de enviar
+        const cleanedData = {
+            name: data.name,
+            email: cleanEmptyString(data.email),
+            phone: cleanEmptyString(formatPhone(data.phone)),
+            document: cleanEmptyString(data.document),
+            type: data.type,
+            address: cleanEmptyString(data.address),
+            city: cleanEmptyString(data.city),
+            state: cleanEmptyString(data.state),
+            zipCode: cleanEmptyString(formatZipCode(data.zipCode)),
+            neighborhood: cleanEmptyString(data.neighborhood),
+            isActive: data.isActive,
+        }
+
         if (isEditMode) {
-            updateMutation.mutate(data)
+            updateMutation.mutate(cleanedData)
         } else {
-            createMutation.mutate(data)
+            createMutation.mutate(cleanedData)
         }
     }
 
@@ -152,10 +154,10 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     ]
 
     return (
-        <Dialog 
-            open={open} 
-            onClose={handleClose} 
-            maxWidth="md" 
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="md"
             fullWidth
             PaperProps={{
                 sx: {
@@ -175,10 +177,10 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                         p: 3,
                     }}
                 >
-                    <Typography 
-                        variant="h5" 
-                        sx={{ 
-                            fontWeight: 700, 
+                    <Typography
+                        variant="h5"
+                        sx={{
+                            fontWeight: 700,
                             color: '#1E293B',
                             background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
                             backgroundClip: 'text',
@@ -190,9 +192,9 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                     </Typography>
                     <IconButton
                         onClick={handleClose}
-                        sx={{ 
-                            position: 'absolute', 
-                            right: 16, 
+                        sx={{
+                            position: 'absolute',
+                            right: 16,
                             top: 16,
                             color: '#64748B',
                             '&:hover': {
@@ -217,48 +219,53 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                         </Grid>
 
                         <Grid item xs={12} md={4}>
-                            <FormControl 
-                                fullWidth
-                                margin="normal"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '12px',
-                                        backgroundColor: '#F8FAFC',
-                                        '& fieldset': {
-                                            borderColor: '#E3F2FD',
-                                        },
-                                        '&:hover fieldset': {
-                                            borderColor: '#93C5FD',
-                                        },
-                                        '&.Mui-focused fieldset': {
-                                            borderColor: '#3B82F6',
-                                            borderWidth: '2px',
-                                            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-                                        },
-                                    },
-                                    '& .MuiInputLabel-root': {
-                                        color: '#64748B',
-                                        fontWeight: 500,
-                                        '&.Mui-focused': {
-                                            color: '#3B82F6',
-                                        },
-                                    },
-                                    '& .MuiSelect-select': {
-                                        color: '#1E293B',
-                                        fontWeight: 500,
-                                    },
-                                }}
-                            >
-                                <InputLabel>Tipo de Cliente</InputLabel>
-                                <Select
-                                    name="type"
-                                    value={control._defaultValues.type}
-                                    label="Tipo de Cliente"
-                                >
-                                    <MenuItem value={CustomerType.FISICA}>Pessoa Física</MenuItem>
-                                    <MenuItem value={CustomerType.JURIDICA}>Pessoa Jurídica</MenuItem>
-                                </Select>
-                            </FormControl>
+                            <Controller
+                                name="type"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormControl
+                                        fullWidth
+                                        margin="normal"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '12px',
+                                                backgroundColor: '#F8FAFC',
+                                                '& fieldset': {
+                                                    borderColor: '#E3F2FD',
+                                                },
+                                                '&:hover fieldset': {
+                                                    borderColor: '#93C5FD',
+                                                },
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#3B82F6',
+                                                    borderWidth: '2px',
+                                                    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
+                                                },
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#64748B',
+                                                fontWeight: 500,
+                                                '&.Mui-focused': {
+                                                    color: '#3B82F6',
+                                                },
+                                            },
+                                            '& .MuiSelect-select': {
+                                                color: '#1E293B',
+                                                fontWeight: 500,
+                                            },
+                                        }}
+                                    >
+                                        <InputLabel>Tipo de Cliente</InputLabel>
+                                        <Select
+                                            {...field}
+                                            label="Tipo de Cliente"
+                                        >
+                                            <MenuItem value={CustomerType.RETAIL}>Pessoa Física</MenuItem>
+                                            <MenuItem value={CustomerType.WHOLESALE}>Pessoa Jurídica</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            />
                         </Grid>
 
                         <Grid item xs={12} md={6}>
@@ -283,6 +290,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                                 name="phone"
                                 control={control}
                                 label="Telefone"
+                                placeholder="(XX) XXXXX-XXXX"
                             />
                         </Grid>
 
@@ -291,6 +299,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                                 name="zipCode"
                                 control={control}
                                 label="CEP"
+                                placeholder="XXXXX-XXX"
                             />
                         </Grid>
 
@@ -319,51 +328,57 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                         </Grid>
 
                         <Grid item xs={12} md={2}>
-                            <FormControl 
-                                fullWidth
-                                margin="normal"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '12px',
-                                        backgroundColor: '#F8FAFC',
-                                        '& fieldset': {
-                                            borderColor: '#E3F2FD',
-                                        },
-                                        '&:hover fieldset': {
-                                            borderColor: '#93C5FD',
-                                        },
-                                        '&.Mui-focused fieldset': {
-                                            borderColor: '#3B82F6',
-                                            borderWidth: '2px',
-                                            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-                                        },
-                                    },
-                                    '& .MuiInputLabel-root': {
-                                        color: '#64748B',
-                                        fontWeight: 500,
-                                        '&.Mui-focused': {
-                                            color: '#3B82F6',
-                                        },
-                                    },
-                                    '& .MuiSelect-select': {
-                                        color: '#1E293B',
-                                        fontWeight: 500,
-                                    },
-                                }}
-                            >
-                                <InputLabel>Estado</InputLabel>
-                                <Select
-                                    name="state"
-                                    value={control._defaultValues.state}
-                                    label="Estado"
-                                >
-                                    {brazilStates.map((state) => (
-                                        <MenuItem key={state} value={state}>
-                                            {state}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            <Controller
+                                name="state"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormControl
+                                        fullWidth
+                                        margin="normal"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '12px',
+                                                backgroundColor: '#F8FAFC',
+                                                '& fieldset': {
+                                                    borderColor: '#E3F2FD',
+                                                },
+                                                '&:hover fieldset': {
+                                                    borderColor: '#93C5FD',
+                                                },
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#3B82F6',
+                                                    borderWidth: '2px',
+                                                    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
+                                                },
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#64748B',
+                                                fontWeight: 500,
+                                                '&.Mui-focused': {
+                                                    color: '#3B82F6',
+                                                },
+                                            },
+                                            '& .MuiSelect-select': {
+                                                color: '#1E293B',
+                                                fontWeight: 500,
+                                            },
+                                        }}
+                                    >
+                                        <InputLabel>Estado</InputLabel>
+                                        <Select
+                                            {...field}
+                                            label="Estado"
+                                        >
+                                            <MenuItem value="">Selecione</MenuItem>
+                                            {brazilStates.map((state) => (
+                                                <MenuItem key={state} value={state}>
+                                                    {state}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            />
                         </Grid>
 
                         {isEditMode && (
@@ -379,14 +394,14 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                 </DialogContent>
 
                 <DialogActions
-                    sx={{ 
-                        p: 3, 
-                        borderTop: '1px solid #E3F2FD', 
+                    sx={{
+                        p: 3,
+                        borderTop: '1px solid #E3F2FD',
                         backgroundColor: '#FAFBFF',
                         gap: 2,
                     }}
                 >
-                    <Button 
+                    <Button
                         onClick={handleClose}
                         sx={{
                             borderRadius: '12px',
